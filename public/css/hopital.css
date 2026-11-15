@@ -1,0 +1,153 @@
+:root {
+  --couleur-principale: #0f766e;
+  --couleur-principale-fonce: #0b5a54;
+  --couleur-fond: #f1f6f6;
+  --couleur-texte: #17313a;
+}
+
+body {
+  background: var(--couleur-fond);
+  color: var(--couleur-texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+.navbar-hopital { background: var(--couleur-principale); }
+.navbar-hopital .navbar-brand,
+.navbar-hopital .nav-link { color: #fff; }
+.navbar-hopital .nav-link:hover { color: #d7f2ef; }
+
+.btn-principal {
+  background: var(--couleur-principale);
+  border-color: var(--couleur-principale);
+  color: #fff;
+}
+.btn-principal:hover,
+.btn-principal:focus {
+  background: var(--couleur-principale-fonce);
+  border-color: var(--couleur-principale-fonce);
+  color: #fff;
+}
+
+.carte-auth {
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 8px 30px rgba(15, 118, 110, .12);
+}
+
+.nav-pills .nav-link { color: var(--couleur-principale); font-weight: 500; }
+.nav-pills .nav-link.active { background: var(--couleur-principale); color: #fff; }
+
+.table-utilisateurs td { vertical-align: middle; }
+
+.form-check-input:checked {
+  background-color: var(--couleur-principale);
+  border-color: var(--couleur-principale);
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--couleur-principale);
+  box-shadow: 0 0 0 .25rem rgba(15, 118, 110, .2);
+}
+
+
+/* ===== Accueil et formulaires (ajouts) ===== */
+.navbar-hopital .nav-link.active{
+  border-bottom: 2px solid #ffffff;
+}
+
+.pastille-session{
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.hero-hopital{
+  background: var(--couleur-principale);
+  color: #ffffff;
+  padding: 4rem 0;
+}
+
+.media-vide{
+  background: #d3e6e3;
+  color: #4d6468;
+  border-radius: 1rem;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.media-vide img,
+.media-vide video{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carte-service{
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.08);
+  height: 100%;
+}
+
+.icone-service{
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #d3e6e3;
+  color: var(--couleur-principale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+}
+
+.pied-hopital{
+  background: #0b3d38;
+  color: #ffffff;
+  padding: 1.4rem 0;
+  font-size: 0.9rem;
+}
+
+.liste-recents{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.liste-recents li{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid #dde7e6;
+}
+
+.liste-recents small{
+  display: block;
+  color: #4d6468;
+}
+
+.btn-lien{
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-left: 0.6rem;
+  font-weight: 600;
+  color: var(--couleur-principale);
+}
+
+.btn-lien.danger{
+  color: #9b2226;
+}
+
+html{
+  scroll-padding-top: 70px;
+}
