@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion – Gestion hospitalière</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+  <nav class="navbar navbar-expand navbar-hopital">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="index.html">Gestion hospitalière</a>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Accueil</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+
+    <!-- Vue visiteur : connexion et inscription -->
+    <div id="vue-anonyme" class="row justify-content-center d-none">
+      <div class="col-12 col-md-8 col-lg-6">
+        <div class="card carte-auth">
+          <div class="card-body p-4 p-md-5">
+            <h1 class="h4 text-center mb-4">Bienvenue</h1>
+
+            <ul class="nav nav-pills nav-fill mb-4" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="onglet-connexion" data-bs-toggle="pill"
+                        data-bs-target="#panneau-connexion" type="button" role="tab">Connexion</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="onglet-inscription" data-bs-toggle="pill"
+                        data-bs-target="#panneau-inscription" type="button" role="tab">Inscription</button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+
+              <!-- Connexion -->
+              <div class="tab-pane fade show active" id="panneau-connexion" role="tabpanel">
+                <div id="alerte-connexion" class="alert alert-danger d-none" role="alert"></div>
+                <form id="form-connexion" novalidate>
+                  <div class="mb-3">
+                    <label for="connexion-email" class="form-label">Adresse email</label>
+                    <input type="email" class="form-control" id="connexion-email" name="email" autocomplete="username" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="mb-4">
+                    <label for="connexion-mdp" class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" id="connexion-mdp" name="mot_de_passe" autocomplete="current-password" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <button type="submit" class="btn btn-principal w-100" id="btn-connexion">Se connecter</button>
+                </form>
+              </div>
+
+              <!-- Inscription -->
+              <div class="tab-pane fade" id="panneau-inscription" role="tabpanel">
+                <div id="alerte-inscription" class="alert alert-danger d-none" role="alert"></div>
+                <form id="form-inscription" novalidate>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="inscription-prenom" class="form-label">Prénom</label>
+                      <input type="text" class="form-control" id="inscription-prenom" name="prenom" autocomplete="given-name" required>
+                      <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="inscription-nom" class="form-label">Nom</label>
+                      <input type="text" class="form-control" id="inscription-nom" name="nom" autocomplete="family-name" required>
+                      <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12">
+                      <label for="inscription-email" class="form-label">Adresse email</label>
+                      <input type="email" class="form-control" id="inscription-email" name="email" autocomplete="email" required>
+                      <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12">
+                      <label for="inscription-mdp" class="form-label">Mot de passe</label>
+                      <div class="input-group has-validation">
+                        <input type="password" class="form-control" id="inscription-mdp" name="mot_de_passe" autocomplete="new-password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-voir-mdp" aria-label="Afficher le mot de passe">Afficher</button>
+                        <div class="invalid-feedback"></div>
+                      </div>
+                      <div class="form-text">8 caractères minimum, avec au moins une lettre et un chiffre.</div>
+                    </div>
+                    <div class="col-12">
+                      <label for="inscription-confirmation" class="form-label">Confirmer le mot de passe</label>
+                      <input type="password" class="form-control" id="inscription-confirmation" name="confirmation" autocomplete="new-password" required>
+                      <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="inscription-conditions" name="conditions" required>
+                        <label class="form-check-label" for="inscription-conditions">
+                          J'accepte les conditions d'utilisation et la confidentialité des données de santé.
+                        </label>
+                        <div class="invalid-feedback"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="small text-muted mt-3 mb-4">
+                    Votre compte sera créé avec le rôle <strong>Secrétaire</strong>.
+                    Un administrateur peut ensuite modifier votre rôle.
+                  </p>
+                  <button type="submit" class="btn btn-principal w-100" id="btn-inscription">Créer mon compte</button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue utilisateur connecté -->
+    <div id="vue-connecte" class="d-none">
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+
+          <div class="card carte-auth mb-4">
+            <div class="card-body p-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <h1 class="h4 mb-1">Bonjour <span id="nom-utilisateur"></span></h1>
+                <span class="badge text-bg-secondary" id="role-utilisateur"></span>
+                <span class="text-muted small ms-2" id="email-utilisateur"></span>
+              </div>
+              <div class="d-flex gap-2">
+                <a href="index.html" class="btn btn-outline-secondary">Accueil</a>
+                <button type="button" class="btn btn-principal" id="btn-deconnexion">Se déconnecter</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gestion des utilisateurs : visible uniquement pour l'administrateur -->
+          <div id="section-admin" class="card carte-auth d-none">
+            <div class="card-body p-4">
+              <h2 class="h5 mb-3">Gestion des utilisateurs et des rôles</h2>
+              <div id="alerte-admin" class="alert d-none" role="alert"></div>
+              <div class="table-responsive">
+                <table class="table table-hover table-utilisateurs mb-0">
+                  <thead>
+                    <tr>
+                      <th>Nom</th>
+                      <th>Email</th>
+                      <th>Rôle</th>
+                      <th class="text-center">Actif</th>
+                    </tr>
+                  </thead>
+                  <tbody id="corps-utilisateurs"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="vue-chargement" class="text-center text-muted py-5">Chargement…</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
