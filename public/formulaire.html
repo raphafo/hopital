@@ -1,65 +1,192 @@
+```html
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gestion hospitalière – Formulaires</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/style.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Formulaires de gestion des patients, médecins, rendez-vous et dossiers médicaux.">
+
+    <title>Gestion hospitalière – Formulaires</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 </head>
+
 <body>
 
-  <nav class="navbar navbar-expand-lg navbar-hopital sticky-top" data-bs-theme="dark">
-    <div class="container">
-      <a class="navbar-brand fw-semibold" href="accueil.html">Gestion hospitalière</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal"
-              aria-controls="menu-principal" aria-expanded="false" aria-label="Ouvrir le menu">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="menu-principal">
-        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-          <li class="nav-item"><a class="nav-link" href="accueil.html">Accueil</a></li>
-          <li class="nav-item"><a class="nav-link" href="gestion.html">Gestion</a></li>
-          <li class="nav-item"><a class="nav-link active" href="formulaire.html" aria-current="page">Formulaires</a></li>
-          <li class="nav-item"><a class="nav-link" href="tableau-de-bord.html">Tableau de bord</a></li>
-          <li class="nav-item d-flex align-items-center gap-2 ms-lg-2" id="zone-session"></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+    <a class="lien-evitement" href="#contenu-principal">
+        Aller au contenu
+    </a>
 
-  <main class="container py-4">
-    <h1 class="h3 mb-3">Enregistrement des informations</h1>
-    <div id="vue-chargement" class="text-muted py-5">Chargement…</div>
+    <nav class="navbar navbar-expand-lg navbar-hopital sticky-top"
+         aria-label="Navigation principale"
+         data-bs-theme="dark">
 
-    <div id="vue-formulaires" class="d-none">
-      <ul class="nav nav-pills mb-3 gap-2" id="onglets" role="tablist"></ul>
+        <div class="container">
 
-      <div class="row g-4">
-        <div class="col-lg-7">
-          <section class="card carte-auth" aria-labelledby="titre-form">
-            <div class="card-body p-4">
-              <h2 class="h5 mb-3" id="titre-form"></h2>
-              <div id="alerte-form" class="alert d-none" role="status"></div>
-              <form id="formulaire" class="row g-3" novalidate></form>
+            <a class="navbar-brand fw-semibold" href="accueil.html">
+                Gestion hospitalière
+            </a>
+
+            <button class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#menu-principal"
+                    aria-controls="menu-principal"
+                    aria-expanded="false"
+                    aria-label="Ouvrir ou fermer le menu">
+
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="menu-principal">
+
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="accueil.html">Accueil</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="gestion.html">Gestion</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link active"
+                           href="formulaire.html"
+                           aria-current="page">
+                            Formulaires
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="tableau-de-bord.html">
+                            Tableau de bord
+                        </a>
+                    </li>
+
+                    <li class="nav-item d-flex align-items-center gap-2 ms-lg-2"
+                        id="zone-session">
+                    </li>
+
+                </ul>
             </div>
-          </section>
         </div>
-        <div class="col-lg-5">
-          <aside class="card carte-auth" aria-labelledby="titre-liste">
-            <div class="card-body p-4">
-              <h2 class="h5 mb-3" id="titre-liste"></h2>
-              <ul class="liste-recents" id="liste"></ul>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
-  </main>
+    </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/session.js"></script>
-  <script src="js/formulaire.js"></script>
+    <main class="container py-4" id="contenu-principal">
+
+        <header class="entete-page mb-4">
+
+            <p class="surtitre sombre">Espace de gestion</p>
+
+            <h1 class="h2 mb-2">
+                Enregistrement des informations
+            </h1>
+
+            <p class="text-muted mb-0">
+                Ajoutez, consultez, modifiez ou supprimez les informations
+                selon les autorisations de votre compte.
+            </p>
+
+        </header>
+
+        <p id="vue-chargement"
+           class="text-muted py-5"
+           role="status"
+           aria-live="polite">
+
+            Chargement des formulaires…
+
+        </p>
+
+        <section id="vue-formulaires"
+                 class="d-none"
+                 aria-label="Gestion des formulaires">
+
+            <nav aria-label="Catégories de formulaires">
+
+                <ul class="nav nav-pills mb-4 gap-2"
+                    id="onglets"
+                    role="tablist">
+                </ul>
+
+            </nav>
+
+            <div class="row g-4">
+
+                <div class="col-lg-7">
+
+                    <section class="card carte-auth h-100"
+                             aria-labelledby="titre-form">
+
+                        <div class="card-body p-4">
+
+                            <h2 class="h4 mb-3" id="titre-form">
+                                Formulaire
+                            </h2>
+
+                            <div id="alerte-form"
+                                 class="alert d-none"
+                                 role="status"
+                                 aria-live="polite">
+                            </div>
+
+                            <form id="formulaire"
+                                  class="row g-3"
+                                  novalidate>
+
+                                <!-- Champs générés par formulaire.js selon le rôle connecté. -->
+
+                            </form>
+
+                        </div>
+                    </section>
+                </div>
+
+                <div class="col-lg-5">
+
+                    <aside class="card carte-auth h-100"
+                           aria-labelledby="titre-liste">
+
+                        <div class="card-body p-4">
+
+                            <h2 class="h4 mb-3" id="titre-liste">
+                                Derniers enregistrements
+                            </h2>
+
+                            <ul class="liste-recents"
+                                id="liste"
+                                aria-live="polite">
+                            </ul>
+
+                        </div>
+                    </aside>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="pied-hopital mt-5">
+
+        <div class="container d-flex flex-wrap justify-content-between gap-2">
+
+            <strong>Gestion hospitalière</strong>
+
+            <span>© 2026 · Projet Laboratoire 5 · MCCI</span>
+
+        </div>
+
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="js/api.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/formulaire.js"></script>
+
 </body>
 </html>
