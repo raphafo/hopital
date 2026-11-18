@@ -48,3 +48,5 @@ body {
   border-color: var(--couleur-principale);
   box-shadow: 0 0 0 .25rem rgba(15, 118, 110, .2);
 }
+
+.navbar-hopital .nav-link.active { color: #fff; border-bottom: 2px solid #fff; }
