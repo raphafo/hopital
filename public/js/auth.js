@@ -25,13 +25,8 @@ function afficherConnecte(user) {
   if (estAdmin) chargerUtilisateurs();
 }
 
-<<<<<<< HEAD
-function redirigerSecretaire(user) {
-  if (user.role !== 'secretaire') return false;
-=======
 function redirigerVersFormulaires(user) {
   if (!['medecin', 'secretaire'].includes(user.role)) return false;
->>>>>>> test_ingrid
   location.href = 'formulaire.html';
   return true;
 }
@@ -109,11 +104,7 @@ $('#form-connexion').addEventListener('submit', async (e) => {
       location.href = 'dashboard.html';
       return;
     }
-<<<<<<< HEAD
-    if (redirigerSecretaire(user)) return;
-=======
     if (redirigerVersFormulaires(user)) return;
->>>>>>> test_ingrid
     afficherConnecte(user);
   } catch (err) {
     if (Object.keys(err.champs || {}).length) afficherErreursChamps(form, err.champs);
@@ -148,11 +139,7 @@ $('#form-inscription').addEventListener('submit', async (e) => {
       },
     });
     form.reset();
-<<<<<<< HEAD
-    if (redirigerSecretaire(user)) return;
-=======
     if (redirigerVersFormulaires(user)) return;
->>>>>>> test_ingrid
     afficherConnecte(user);
   } catch (err) {
     if (Object.keys(err.champs || {}).length) afficherErreursChamps(form, err.champs);
@@ -242,11 +229,7 @@ $('#corps-utilisateurs').addEventListener('change', async (e) => {
 (async function init() {
   try {
     const { user } = await api('/api/auth/moi');
-<<<<<<< HEAD
-    if (redirigerSecretaire(user)) return;
-=======
     if (redirigerVersFormulaires(user)) return;
->>>>>>> test_ingrid
     afficherConnecte(user);
   } catch {
     afficherVue('anonyme');
