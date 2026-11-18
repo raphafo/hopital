@@ -94,6 +94,10 @@ $('#form-connexion').addEventListener('submit', async (e) => {
       body: { email: form.email.value, mot_de_passe: form.mot_de_passe.value },
     });
     form.reset();
+    if (user.role === 'admin') {
+      location.href = 'dashboard.html';
+      return;
+    }
     afficherConnecte(user);
   } catch (err) {
     if (Object.keys(err.champs || {}).length) afficherErreursChamps(form, err.champs);
