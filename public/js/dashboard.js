@@ -1,104 +1,197 @@
-const $ = (selector) => document.querySelector(selector);
-const LIBELLES_ACTIONS = {
-  connexion: 'Connexion',
-  creation: 'Création',
-  modification: 'Modification',
-  suppression: 'Suppression',
+const $ = (sel) => document.querySelector(sel);
+const INTERVALLE_MS = 30000;
+const COULEUR = '#0f766e';
+
+const STATUTS = {
+  planifie: { libelle: 'Planifié', classe: 'text-bg-primary' },
+  termine:  { libelle: 'Terminé',  classe: 'text-bg-success' },
+  annule:   { libelle: 'Annulé',   classe: 'text-bg-danger' },
 };
-const CLASSES_ACTIONS = {
-  connexion: 'status-pl',
-  creation: 'status-ok',
-  modification: 'status-pl',
-  suppression: 'status-ko',
+const ACTIONS = {
+  connexion:    { libelle: 'Connexion',    classe: 'text-bg-primary' },
+  creation:     { libelle: 'Création',     classe: 'text-bg-success' },
+  modification: { libelle: 'Modification', classe: 'text-bg-warning' },
+  suppression:  { libelle: 'Suppression',  classe: 'text-bg-danger' },
 };
-const FORMAT_MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
-const FORMAT_DATE = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
-let activites = [];
 
-function echapperHtml(value) {
-  const element = document.createElement('span');
-  element.textContent = value ?? '';
-  return element.innerHTML;
+let graphMois = null;
+let graphSpecialite = null;
+let minuteur = null;
+
+/* ---------- Utilitaires d'affichage ---------- */
+
+const nombre = (n) => Number(n).toLocaleString('fr-FR');
+
+function nomMois(aaaaMm) {
+  const [annee, mois] = aaaaMm.split('-').map(Number);
+  return new Date(annee, mois - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
 }
 
-function afficherConsultations(rows) {
-  const maximum = Math.max(1, ...rows.map((row) => Number(row.nombre)));
-  $('#hd-monthly-chart').innerHTML = rows.map((row) => {
-    const date = new Date(`${String(row.mois).slice(0, 10)}T12:00:00`);
-    const nombre = Number(row.nombre);
-    const hauteur = Math.max(4, Math.round(nombre / maximum * 150));
-    return `<div class="chart-item" title="${nombre} consultation(s)">
-      <span class="chart-count">${nombre}</span>
-      <div class="chart-bar" style="height:${hauteur}px"></div>
-      <div class="chart-label">${FORMAT_MOIS.format(date)}</div>
-    </div>`;
-  }).join('');
+function ilYa(dateIso) {
+  const secondes = Math.round((new Date(dateIso) - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+  const abs = Math.abs(secondes);
+  if (abs < 60) return rtf.format(Math.round(secondes), 'second');
+  if (abs < 3600) return rtf.format(Math.round(secondes / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(secondes / 3600), 'hour');
+  return rtf.format(Math.round(secondes / 86400), 'day');
 }
 
-function afficherSpecialites(rows) {
-  const maximum = Math.max(1, ...rows.map((row) => Number(row.nombre)));
-  $('#hd-specialties').innerHTML = rows.length ? rows.map((row) => {
-    const nombre = Number(row.nombre);
-    const pourcentage = Math.round(nombre / maximum * 100);
-    const nom = echapperHtml(row.specialite);
-    return `<div class="specialty-row">
-      <div class="d-flex justify-content-between">
-        <span class="specialty-name">${nom}</span>
-        <strong class="specialty-number">${nombre}</strong>
-      </div>
-      <div class="progress" role="progressbar" aria-label="${nom}" aria-valuenow="${pourcentage}" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-bar" style="width:${pourcentage}%"></div>
-      </div>
-    </div>`;
-  }).join('') : '<p class="text-muted mb-0">Aucune donnée disponible.</p>';
+function afficherErreur(message) {
+  const alerte = $('#alerte-dash');
+  alerte.textContent = message;
+  alerte.classList.remove('d-none');
 }
 
-function afficherActivites() {
-  const filtre = $('#filtre-activites').value;
-  const liste = filtre ? activites.filter((item) => item.action === filtre) : activites;
-  $('#hd-activity-body').innerHTML = liste.length ? liste.map((item) => `
-    <tr>
-      <td>${echapperHtml(item.description)}</td>
-      <td class="text-nowrap">${FORMAT_DATE.format(new Date(item.created_at))}</td>
-      <td><span class="status-tag ${CLASSES_ACTIONS[item.action] || 'status-pl'}">${LIBELLES_ACTIONS[item.action] || 'Action'}</span></td>
-    </tr>`).join('') : '<tr><td colspan="3" class="text-muted">Aucune activité pour ce filtre.</td></tr>';
+/* ---------- Rendu des blocs ---------- */
+
+function majKpi(k) {
+  $('#kpi-patients').textContent = nombre(k.patients);
+  $('#kpi-medecins').textContent = nombre(k.medecins);
+  $('#kpi-avenir').textContent = nombre(k.rdv_a_venir);
+  $('#kpi-aujourdhui').textContent = nombre(k.rdv_aujourdhui);
+  $('#kpi-annulation').textContent = `${k.taux_annulation.toLocaleString('fr-FR')} %`;
+  $('#kpi-total').textContent = nombre(k.rdv_total);
 }
 
-function afficherStatuts(rows) {
-  const libelles = { planifie: 'Planifié', termine: 'Terminé', annule: 'Annulé' };
-  const classes = { planifie: 'status-pl', termine: 'status-ok', annule: 'status-ko' };
-  const nombres = new Map(rows.map((item) => [item.statut, Number(item.nombre)]));
-  $('#hd-status-body').innerHTML = Object.keys(libelles).map((statut) => `
-    <tr>
-      <td><span class="status-tag ${classes[statut]}">${libelles[statut]}</span></td>
-      <td>${nombres.get(statut) || 0}</td>
-    </tr>`).join('');
+function optionsCommunes(extra = {}) {
+  return { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...extra };
 }
 
-async function chargerDashboard() {
-  const user = await chargerSession({ exiger: true });
-  if (!user) return;
+function majGraphiques(d) {
+  const labelsMois = d.consultations_par_mois.map((m) => nomMois(m.mois));
+  const valeursMois = d.consultations_par_mois.map((m) => m.nb);
+  const labelsSpec = d.par_specialite.map((s) => s.specialite);
+  const valeursSpec = d.par_specialite.map((s) => s.nb);
 
-  try {
-    const data = await api('/api/dashboard');
-    $('#stat-patients').textContent = data.statistiques.patients;
-    $('#stat-medecins').textContent = data.statistiques.medecins;
-    $('#stat-rdv-avenir').textContent = data.statistiques.rendez_vous_a_venir;
-    $('#stat-annulations').textContent = `${data.statistiques.taux_annulation} %`;
-    activites = data.activites;
-    afficherConsultations(data.consultationsParMois);
-    afficherSpecialites(data.rendezVousParSpecialite);
-    afficherActivites();
-    afficherStatuts(data.rendezVousParStatut);
-    $('#date-actualisation').textContent = `Mis à jour à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(new Date())}`;
-    $('#contenu-dashboard').classList.remove('d-none');
-  } catch (err) {
-    $('#alerte-dashboard').textContent = err.message;
-    $('#alerte-dashboard').classList.remove('d-none');
-  } finally {
-    $('#chargement-dashboard').classList.add('d-none');
+  if (!graphMois) {
+    graphMois = new Chart($('#graph-mois'), {
+      type: 'bar',
+      data: { labels: labelsMois, datasets: [{ label: 'Consultations terminées', data: valeursMois, backgroundColor: COULEUR, borderRadius: 6 }] },
+      options: optionsCommunes({ scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }),
+    });
+    graphSpecialite = new Chart($('#graph-specialite'), {
+      type: 'bar',
+      data: { labels: labelsSpec, datasets: [{ label: 'Rendez-vous', data: valeursSpec, backgroundColor: COULEUR, borderRadius: 6 }] },
+      options: optionsCommunes({ indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }),
+    });
+  } else {
+    graphMois.data.labels = labelsMois;
+    graphMois.data.datasets[0].data = valeursMois;
+    graphMois.update();
+    graphSpecialite.data.labels = labelsSpec;
+    graphSpecialite.data.datasets[0].data = valeursSpec;
+    graphSpecialite.update();
   }
 }
 
-$('#filtre-activites').addEventListener('change', afficherActivites);
-chargerDashboard();
+function majStatuts(lignes) {
+  $('#corps-statuts').innerHTML = lignes.map((l) => {
+    const s = STATUTS[l.statut] || { libelle: l.statut, classe: 'text-bg-secondary' };
+    return `<tr><td><span class="badge ${s.classe}">${s.libelle}</span></td><td class="text-end fw-semibold">${nombre(l.nb)}</td></tr>`;
+  }).join('');
+}
+
+function majMedecins(lignes) {
+  $('#corps-medecins').innerHTML = lignes.length
+    ? lignes.map((m) => `
+        <tr>
+          <td>Dr ${echapper(m.prenom)} ${echapper(m.nom)}</td>
+          <td>${echapper(m.specialite)}</td>
+          <td class="text-end">${nombre(m.planifies)}</td>
+          <td class="text-end">${nombre(m.termines)}</td>
+          <td class="text-end">${nombre(m.annules)}</td>
+          <td class="text-end fw-semibold">${nombre(m.total)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="6" class="text-center text-muted py-3">Aucun médecin enregistré.</td></tr>';
+}
+
+function majActivites(lignes) {
+  $('#corps-activites').innerHTML = lignes.length
+    ? lignes.map((a) => {
+        const act = ACTIONS[a.action] || { libelle: a.action, classe: 'text-bg-secondary' };
+        const par = a.user_prenom ? `${echapper(a.user_prenom)} ${echapper(a.user_nom)}` : '<span class="text-muted">Système</span>';
+        const complet = new Date(a.created_at).toLocaleString('fr-FR');
+        return `
+          <tr>
+            <td>${echapper(a.description)}</td>
+            <td>${par}</td>
+            <td><span class="badge ${act.classe}">${act.libelle}</span></td>
+            <td class="text-nowrap" title="${complet}">${ilYa(a.created_at)}</td>
+          </tr>`;
+      }).join('')
+    : '<tr><td colspan="4" class="text-center text-muted py-3">Aucune activité ne correspond.</td></tr>';
+}
+
+/* ---------- Chargement des données ---------- */
+
+function gererErreur(err) {
+  if (err.status === 401) { window.location.href = 'auth.html'; return; }
+  if (err.status === 403) { arreterActualisation(); afficherVue('refuse'); return; }
+  afficherErreur(err.message || "Impossible d'actualiser les données.");
+}
+
+async function chargerActivites() {
+  const params = new URLSearchParams();
+  if ($('#filtre-action').value) params.set('action', $('#filtre-action').value);
+  if ($('#filtre-recherche').value.trim()) params.set('q', $('#filtre-recherche').value.trim());
+  const { activites } = await api(`/api/stats/activites?${params}`);
+  majActivites(activites);
+}
+
+async function actualiser() {
+  try {
+    const d = await api('/api/stats/dashboard');
+    majKpi(d.kpi);
+    majGraphiques(d);
+    majStatuts(d.par_statut);
+    majMedecins(d.par_medecin);
+    await chargerActivites();
+    $('#alerte-dash').classList.add('d-none');
+    $('#maj-heure').textContent = new Date().toLocaleTimeString('fr-FR');
+  } catch (err) {
+    gererErreur(err);
+  }
+}
+
+function demarrerActualisation() {
+  arreterActualisation();
+  minuteur = setInterval(() => { if (!document.hidden) actualiser(); }, INTERVALLE_MS);
+}
+
+function arreterActualisation() {
+  if (minuteur) clearInterval(minuteur);
+  minuteur = null;
+}
+
+/* ---------- Démarrage ---------- */
+
+function afficherVue(nom) {
+  $('#vue-chargement').classList.toggle('d-none', nom !== 'chargement');
+  $('#acces-refuse').classList.toggle('d-none', nom !== 'refuse');
+  $('#vue-dashboard').classList.toggle('d-none', nom !== 'dashboard');
+}
+
+let delaiRecherche = null;
+$('#filtre-action').addEventListener('change', () => chargerActivites().catch(gererErreur));
+$('#filtre-recherche').addEventListener('input', () => {
+  clearTimeout(delaiRecherche);
+  delaiRecherche = setTimeout(() => chargerActivites().catch(gererErreur), 300);
+});
+$('#btn-actualiser').addEventListener('click', actualiser);
+
+(async function init() {
+  let user;
+  try {
+    ({ user } = await api('/api/auth/moi'));
+  } catch {
+    window.location.href = 'auth.html';
+    return;
+  }
+  monterNav('dashboard', user);
+  if (user.role !== 'admin') return afficherVue('refuse');
+
+  afficherVue('dashboard');
+  await actualiser();
+  demarrerActualisation();
+})();

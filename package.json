@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "test": "node --test",
     "db:init": "node scripts/init-db.js",
     "db:users": "node scripts/create-users.js"
   },
