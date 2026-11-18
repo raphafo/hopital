@@ -17,12 +17,12 @@ export async function kpi() {
 // Consultations terminées sur les 6 derniers mois, mois sans consultation inclus (valeur 0)
 export async function consultationsParMois() {
   const { rows } = await query(`
-    SELECT to_char(m, 'YYYY-MM') AS mois, COALESCE(c.nb, 0)::int AS nb
+    SELECT to_char(serie.mois, 'YYYY-MM') AS mois, COALESCE(c.nb, 0)::int AS nb
       FROM generate_series(date_trunc('month', CURRENT_DATE) - interval '5 months',
-                           date_trunc('month', CURRENT_DATE), interval '1 month') AS m
+                           date_trunc('month', CURRENT_DATE), interval '1 month') AS serie(mois)
       LEFT JOIN (SELECT date_trunc('month', date_rdv) AS mois, COUNT(*) AS nb
-                   FROM rendez_vous WHERE statut = 'termine' GROUP BY 1) c ON c.mois = m
-     ORDER BY m
+                   FROM rendez_vous WHERE statut = 'termine' GROUP BY 1) c ON c.mois = serie.mois
+     ORDER BY serie.mois
   `);
   return rows;
 }

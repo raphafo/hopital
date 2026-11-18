@@ -13,22 +13,38 @@ const JOINTURES = `
 
 export async function lister({ q, statut, medecinId, dateDebut, dateFin, limite, offset }) {
   const { rows } = await query(`
-    SELECT ${COLONNES}, COUNT(*) OVER()::int AS total_count
-    ${JOINTURES}
-     WHERE ($1::text IS NULL
-            OR p.nom ILIKE '%' || $1 || '%' OR p.prenom ILIKE '%' || $1 || '%'
-            OR (p.prenom || ' ' || p.nom) ILIKE '%' || $1 || '%'
-            OR m.nom ILIKE '%' || $1 || '%' OR m.prenom ILIKE '%' || $1 || '%'
-            OR r.motif ILIKE '%' || $1 || '%')
-       AND ($2::text IS NULL OR r.statut = $2)
-       AND ($3::int IS NULL OR r.medecin_id = $3)
-       AND ($4::date IS NULL OR r.date_rdv >= $4)
-       AND ($5::date IS NULL OR r.date_rdv <= $5)
-     ORDER BY r.date_rdv DESC, r.heure_rdv DESC, r.id DESC
-     LIMIT $6 OFFSET $7
-  `, [q, statut, medecinId, dateDebut, dateFin, limite, offset]);
-  return rows;
+    WITH resultats AS (
+      SELECT ${COLONNES}
+      ${JOINTURES}
+       WHERE ($1::text IS NULL
+              OR p.nom ILIKE '%' || $1 || '%' OR p.prenom ILIKE '%' || $1 || '%'
+              OR (p.prenom || ' ' || p.nom) ILIKE '%' || $1 || '%'
+              OR m.nom ILIKE '%' || $1 || '%' OR m.prenom ILIKE '%' || $1 || '%'
+              OR r.motif ILIKE '%' || $1 || '%')
+         AND ($2::text IS NULL OR r.statut = $2)
+         AND ($3::int IS NULL OR r.medecin_id = $3)
+         AND ($4::date IS NULL OR r.date_rdv >= $4)
+         AND ($5::date IS NULL OR r.date_rdv <= $5)
+    ),
+    page AS (
+      SELECT * FROM resultats
+       ORDER BY date_rdv DESC, heure_rdv DESC, id DESC
+       LIMIT COALESCE($6::int, (SELECT COUNT(*)::int FROM resultats))
+      OFFSET $7
+    )
+    SELECT page.*, total.total_count
+      FROM (SELECT COUNT(*)::int AS total_count FROM resultats) total
+      LEFT JOIN page ON TRUE
+     ORDER BY page.date_rdv DESC, page.heure_rdv DESC, page.id DESC
+  `, [echapperRecherche(q), statut, medecinId, dateDebut, dateFin, limite, offset]);
+  const total = rows[0]?.total_count ?? 0;
+  return {
+    items: rows.filter((row) => row.id != null).map(({ total_count, ...rdv }) => rdv),
+    total,
+  };
 }
+
+const echapperRecherche = (q) => q?.replace(/[\\%_]/g, '\\$&') ?? null;
 
 export async function trouver(id) {
   const { rows } = await query(`SELECT ${COLONNES} ${JOINTURES} WHERE r.id = $1`, [id]);

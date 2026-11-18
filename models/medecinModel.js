@@ -2,22 +2,37 @@ import { query } from '../config/db.js';
 
 export async function lister({ q, specialite, disponible, limite, offset }) {
   const { rows } = await query(`
-    SELECT m.id, m.nom, m.prenom, m.specialite, m.telephone, m.email, m.disponible, m.photo_url,
-           (SELECT COUNT(*) FROM rendez_vous r
-             WHERE r.medecin_id = m.id AND r.statut = 'planifie' AND r.date_rdv >= CURRENT_DATE)::int AS rdv_a_venir,
-           COUNT(*) OVER()::int AS total_count
-      FROM medecins m
-     WHERE ($1::text IS NULL
-            OR m.nom ILIKE '%' || $1 || '%' OR m.prenom ILIKE '%' || $1 || '%'
-            OR (m.prenom || ' ' || m.nom) ILIKE '%' || $1 || '%'
-            OR m.specialite ILIKE '%' || $1 || '%' OR m.email ILIKE '%' || $1 || '%')
-       AND ($2::text IS NULL OR m.specialite = $2)
-       AND ($3::boolean IS NULL OR m.disponible = $3)
-     ORDER BY m.nom, m.prenom
-     LIMIT $4 OFFSET $5
-  `, [q, specialite, disponible, limite, offset]);
-  return rows;
+    WITH resultats AS (
+      SELECT m.id, m.nom, m.prenom, m.specialite, m.telephone, m.email, m.disponible, m.photo_url,
+             (SELECT COUNT(*) FROM rendez_vous r
+               WHERE r.medecin_id = m.id AND r.statut = 'planifie' AND r.date_rdv >= CURRENT_DATE)::int AS rdv_a_venir
+        FROM medecins m
+       WHERE ($1::text IS NULL
+              OR m.nom ILIKE '%' || $1 || '%' OR m.prenom ILIKE '%' || $1 || '%'
+              OR (m.prenom || ' ' || m.nom) ILIKE '%' || $1 || '%'
+              OR m.specialite ILIKE '%' || $1 || '%' OR m.email ILIKE '%' || $1 || '%')
+         AND ($2::text IS NULL OR m.specialite = $2)
+         AND ($3::boolean IS NULL OR m.disponible = $3)
+    ),
+    page AS (
+      SELECT * FROM resultats
+       ORDER BY nom, prenom
+       LIMIT COALESCE($4::int, (SELECT COUNT(*)::int FROM resultats))
+      OFFSET $5
+    )
+    SELECT page.*, total.total_count
+      FROM (SELECT COUNT(*)::int AS total_count FROM resultats) total
+      LEFT JOIN page ON TRUE
+     ORDER BY page.nom, page.prenom
+  `, [echapperRecherche(q), specialite, disponible, limite, offset]);
+  const total = rows[0]?.total_count ?? 0;
+  return {
+    items: rows.filter((row) => row.id != null).map(({ total_count, ...medecin }) => medecin),
+    total,
+  };
 }
+
+const echapperRecherche = (q) => q?.replace(/[\\%_]/g, '\\$&') ?? null;
 
 export async function trouver(id) {
   const { rows } = await query(`

@@ -14,7 +14,8 @@ Application web de gestion hospitalière (Laboratoire 5) : patients, médecins, 
 2. Copier `.env.example` en `.env` et renseigner `DATABASE_URL` et `JWT_SECRET`
 3. `npm run db:init` (crée les tables et les données de test, supprime les tables existantes)
 4. `npm run db:users` (crée les comptes de test admin, médecin, secrétaire)
-5. `npm run dev` puis ouvrir http://localhost:3000
+5. `npm test` pour exécuter les tests
+6. `npm run dev` puis ouvrir http://localhost:3000
 
 ## Structure
 ```
@@ -24,8 +25,10 @@ middleware/        authentification et rôles
 routes/            routes de l'API
 controllers/       logique métier
 models/            requêtes SQL
+utils/             validation des filtres et de la pagination
 sql/               schema.sql et seed.sql
 scripts/           init-db.js et create-users.js
+tests/             tests automatisés
 public/            pages HTML, CSS, JS, images
 ```
 

@@ -22,20 +22,25 @@ export async function lister(req, res, next) {
     });
     if (erreur) return res.status(400).json({ erreur: `Paramètre invalide : ${erreur}` });
 
+    if (filtres.date_debut && filtres.date_fin && filtres.date_debut > filtres.date_fin) {
+      return res.status(400).json({ erreur: 'La date de début doit précéder la date de fin.' });
+    }
+    const paginationActive = req.query.page != null || req.query.limite != null;
     const pagination = lirePagination(req.query, { limiteParDefaut: 10 });
     const medecinImpose = await restrictionMedecin(req);
-    const lignes = await Rdv.lister({
+    const { items, total } = await Rdv.lister({
       q: lireRecherche(req.query),
       statut: filtres.statut,
       medecinId: medecinImpose ?? filtres.medecin_id,
       dateDebut: filtres.date_debut,
       dateFin: filtres.date_fin,
-      limite: pagination.limite,
+      limite: paginationActive ? pagination.limite : null,
       offset: pagination.offset,
     });
     res.set('Cache-Control', 'no-store');
-    res.json(reponsePage(lignes, pagination));
+    res.json(paginationActive ? reponsePage(items, pagination, total) : { rdv: items });
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ erreur: err.message });
     next(err);
   }
 }
@@ -82,7 +87,7 @@ export async function supprimer(req, res, next) {
     const rdv = await Rdv.trouver(id);
     if (!rdv) return res.status(404).json({ erreur: 'Rendez-vous introuvable' });
 
-    await Rdv.supprimer(id);
+    if (!(await Rdv.supprimer(id))) return res.status(404).json({ erreur: 'Rendez-vous introuvable' });
     await enregistrerActivite({
       userId: req.user.id, action: 'suppression', entite: 'rendez_vous', entiteId: id,
       description: `Rendez-vous supprimé : ${rdv.patient_prenom} ${rdv.patient_nom} (Dr ${rdv.medecin_nom})`,
