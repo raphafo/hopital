@@ -1,9 +1,11 @@
 // Barre de navigation commune. Chaque page appelle monterNav('page-active', utilisateur).
 // Pour ajouter une page au menu, ajouter une ligne dans LIENS_NAV.
 const LIENS_NAV = [
-  { id: 'accueil',   href: 'index.html',     libelle: 'Accueil' },
-  { id: 'gestion',   href: 'gestion.html',   libelle: 'Gestion' },
-  { id: 'dashboard', href: 'dashboard.html', libelle: 'Tableau de bord', roles: ['admin'] },
+  { id: 'accueil',   href: 'accueil.html',    libelle: 'Accueil' },
+  { id: 'gestion',   href: 'gestion.html',    libelle: 'Gestion' },
+  { id: 'formulaire',href: 'formulaire.html', libelle: 'Formulaires' },
+  { id: 'dashboard', href: 'dashboard.html',  libelle: 'Tableau de bord' },
+  { id: 'users',     href: 'auth.html',       libelle: 'Utilisateurs' },
 ];
 const NOMS_ROLES = { admin: 'Administrateur', medecin: 'Médecin', secretaire: 'Secrétaire' };
 
@@ -14,8 +16,9 @@ function echapper(texte) {
 }
 
 function monterNav(actif, user) {
+  const pages = window.POLITIQUE_ROLES[user.role]?.pages || [];
   const liens = LIENS_NAV
-    .filter((l) => !l.roles || l.roles.includes(user.role))
+    .filter((l) => pages.includes(l.id))
     .map((l) => `<li class="nav-item"><a class="nav-link${l.id === actif ? ' active fw-semibold' : ''}" href="${l.href}">${l.libelle}</a></li>`)
     .join('');
 

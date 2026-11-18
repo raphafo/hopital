@@ -1,9 +1,4 @@
 const $ = (sel) => document.querySelector(sel);
-const ONGLETS_PAR_ROLE = {
-  admin: ['patients', 'medecins', 'rdv', 'dossiers'],
-  secretaire: ['patients', 'rdv'],
-  medecin: ['rdv', 'dossiers'],
-};
 const SPECIALITES = ['Médecine générale', 'Cardiologie', 'Pédiatrie', 'Orthopédie', 'Dermatologie'];
 const GROUPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const STATUTS = { planifie: 'Planifié', termine: 'Terminé', annule: 'Annulé' };
@@ -16,6 +11,7 @@ const donnees = { patients: [], medecins: [], rdv: [], dossiers: [] };
 let courant = 'patients';
 let edition = null;
 let onglets = [];
+let roleCourant = null;
 
 const jour = (v) => String(v ?? '').slice(0, 10);
 const heure = (v) => String(v ?? '').slice(0, 5);
@@ -115,18 +111,26 @@ function remplirSelect(c) {
   el.innerHTML = vide + c.opt().map(([v, l]) => `<option value="${echapperHtml(String(v))}">${echapperHtml(l)}</option>`).join('');
 }
 
+function champsDisponibles(f) {
+  return f.champs.filter((c) => !(roleCourant === 'medecin' && courant === 'dossiers' && c.n === 'medecin_id'));
+}
+
 function afficher() {
   const f = FORMS[courant];
+  const champs = champsDisponibles(f);
   const form = $('#formulaire');
   $('#titre-form').textContent = edition ? `Modifier ${f.article}` : f.titre;
   $('#titre-liste').textContent = f.liste;
-  form.innerHTML = f.champs.map(champHtml).join('') + `
+  const aideMedecin = roleCourant === 'medecin' && courant === 'dossiers'
+    ? '<div class="col-12"><p class="form-text mb-0">Ce dossier sera automatiquement attribué à votre profil médecin.</p></div>'
+    : '';
+  form.innerHTML = aideMedecin + champs.map(champHtml).join('') + `
     <div class="col-12 d-flex gap-2">
       <button type="submit" class="btn btn-principal">${edition ? 'Enregistrer les modifications' : 'Enregistrer'}</button>
       <button type="button" class="btn btn-outline-secondary" id="btn-annuler">Annuler</button>
     </div>`;
 
-  for (const c of f.champs) {
+  for (const c of champs) {
     const el = form.elements[c.n];
     if (c.t === 'select') remplirSelect(c);          // l'ordre des champs compte : patient avant rendez-vous lié
     if (c.t === 'file') continue;
@@ -144,6 +148,9 @@ function afficher() {
   $('#liste').innerHTML = lignes.length ? lignes.map((d) => `
     <li><div><strong>${echapperHtml(f.titreItem(d))}</strong><small>${echapperHtml(f.sousTitre(d))}</small></div>
       <div class="text-nowrap"><button type="button" class="btn-lien" data-act="mod" data-id="${d.id}">Modifier</button>
+      ${courant === 'dossiers' && d.fichier_present ? `
+        <a class="btn-lien" href="/api/dossiers/${d.id}/fichier" target="_blank" rel="noopener">Voir PDF</a>
+        <a class="btn-lien" href="/api/dossiers/${d.id}/fichier?telecharger=1">Télécharger</a>` : ''}
       <button type="button" class="btn-lien danger" data-act="sup" data-id="${d.id}">Supprimer</button></div></li>`).join('')
     : '<li class="text-muted small">Aucun enregistrement. Remplissez le formulaire pour commencer.</li>';
 }
@@ -168,16 +175,20 @@ function montrerErreurs(champs) {
 }
 
 
-async function chargerDonnees() {
-  const cles = Object.keys(donnees);
-  const reponses = await Promise.allSettled(cles.map((k) => api(FORMS[k].url)));
-  reponses.forEach((r, i) => { donnees[cles[i]] = r.status === 'fulfilled' ? (r.value[cles[i]] || []) : []; });
+async function chargerDonnees(role) {
+  const droits = window.POLITIQUE_ROLES[role]?.resources || {};
+  const cles = Object.keys(donnees).filter((cle) => droits[cle]?.includes('read'));
+  await Promise.all(cles.map(async (cle) => {
+    const reponse = await api(FORMS[cle].url);
+    if (!Array.isArray(reponse[cle])) throw new Error(`Réponse invalide pour ${cle}.`);
+    donnees[cle] = reponse[cle];
+  }));
 }
 
 function lireFormulaire(f) {
   const form = $('#formulaire');
   const v = {};
-  for (const c of f.champs) {
+  for (const c of champsDisponibles(f)) {
     if (c.t === 'file') continue;
     const el = form.elements[c.n];
     if (c.t === 'check') { v[c.n] = el.checked; continue; }
@@ -190,7 +201,7 @@ function lireFormulaire(f) {
 function valider(f, v, fichier) {
   const e = {};
   const aujourdhui = new Date().toLocaleDateString('sv-SE');
-  for (const c of f.champs) {
+  for (const c of champsDisponibles(f)) {
     const val = v[c.n];
     if (c.req && val == null) e[c.n] = 'Ce champ est obligatoire.';
     else if (val && c.motif && !c.motif.test(val)) e[c.n] = c.err;
@@ -219,7 +230,7 @@ function gererErreur(err) {
 }
 
 async function rafraichir() {
-  await chargerDonnees();
+  await chargerDonnees(roleCourant);
   afficher();
 }
 
@@ -283,7 +294,13 @@ $('#liste').addEventListener('click', async (e) => {
     edition = ligne;
     afficher();
     $('#formulaire').querySelector('input, select, textarea')?.focus();
-  } else if (confirm(`Supprimer « ${f.titreItem(ligne)} » ?`)) {
+  } else {
+    const confirmation = courant === 'patients'
+      ? roleCourant === 'secretaire'
+        ? `Supprimer « ${f.titreItem(ligne)} » ? La suppression est impossible si un dossier médical lui est rattaché.`
+        : `Supprimer « ${f.titreItem(ligne)} » ? Ses rendez-vous et ses dossiers seront aussi supprimés.`
+      : `Supprimer « ${f.titreItem(ligne)} » ?`;
+    if (!confirm(confirmation)) return;
     try {
       await api(`${f.url}/${ligne.id}`, { method: 'DELETE' });
       edition = null;
@@ -300,10 +317,42 @@ $('#liste').addEventListener('click', async (e) => {
 (async function init() {
   const user = await chargerSession({ exiger: true });
   if (!user) return;
-  onglets = ONGLETS_PAR_ROLE[user.role] || [];
+  roleCourant = user.role;
+  const droits = window.POLITIQUE_ROLES[user.role]?.resources || {};
+  onglets = Object.keys(FORMS).filter((cle) => droits[cle]?.includes('create'));
   if (!onglets.length) return $('#vue-chargement').textContent = 'Votre rôle n’a pas accès aux formulaires.';
-  courant = onglets[0];
-  await chargerDonnees();
+
+  const params = new URLSearchParams(location.search);
+  const typeDemande = params.get('type');
+  if (typeDemande && !onglets.includes(typeDemande)) {
+    courant = onglets[0];
+    $('#vue-chargement').classList.add('d-none');
+    $('#vue-formulaires').classList.remove('d-none');
+    afficher();
+    return alerte('danger', 'Vous n’avez pas accès à ce formulaire.');
+  }
+  courant = typeDemande || onglets[0];
+
+  try {
+    await chargerDonnees(roleCourant);
+  } catch (err) {
+    $('#vue-chargement').classList.add('d-none');
+    $('#vue-formulaires').classList.remove('d-none');
+    afficher();
+    return alerte('danger', err.message);
+  }
+
+  const idDemande = params.get('id');
+  if (idDemande) {
+    const id = /^\d+$/.test(idDemande) ? Number(idDemande) : null;
+    edition = Number.isSafeInteger(id) ? donnees[courant].find((ligne) => ligne.id === id) || null : null;
+    if (!edition) {
+      $('#vue-chargement').classList.add('d-none');
+      $('#vue-formulaires').classList.remove('d-none');
+      afficher();
+      return alerte('danger', 'Enregistrement introuvable.');
+    }
+  }
   $('#vue-chargement').classList.add('d-none');
   $('#vue-formulaires').classList.remove('d-none');
   afficher();

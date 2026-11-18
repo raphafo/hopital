@@ -37,12 +37,28 @@ function resource(type) {
   return definition;
 }
 
-export async function lister(type) {
+export async function lister(type, { medecinId = null } = {}) {
   const definition = resource(type);
+  if (type === 'dossiers' && medecinId != null) {
+    const { rows } = await query(
+      `SELECT ${definition.select} FROM ${definition.table} WHERE medecin_id = $1 ORDER BY ${definition.order}`,
+      [medecinId]
+    );
+    return rows;
+  }
   const { rows } = await query(
     `SELECT ${definition.select} FROM ${definition.table} ORDER BY ${definition.order}`
   );
   return rows;
+}
+
+export async function trouver(type, id) {
+  const definition = resource(type);
+  const { rows } = await query(
+    `SELECT ${definition.select} FROM ${definition.table} WHERE id = $1`,
+    [id]
+  );
+  return rows[0] || null;
 }
 
 export async function creer(type, values) {
@@ -59,27 +75,39 @@ export async function creer(type, values) {
   return rows[0];
 }
 
-export async function modifier(type, id, values) {
+export async function modifier(type, id, values, { medecinId = null } = {}) {
   const definition = resource(type);
   const entries = Object.entries(values).filter(([column]) => definition.update.includes(column));
   if (!entries.length) return null;
 
   const assignments = entries.map(([column], index) => `${column} = $${index + 2}`);
+  const params = [id, ...entries.map(([, value]) => value)];
+  let condition = 'id = $1';
+  if (type === 'dossiers' && medecinId != null) {
+    params.push(medecinId);
+    condition += ` AND medecin_id = $${params.length}`;
+  }
   const { rows } = await query(
     `UPDATE ${definition.table}
         SET ${assignments.join(', ')}${type === 'dossiers' ? ', updated_at = NOW()' : ''}
-      WHERE id = $1
+      WHERE ${condition}
       RETURNING ${definition.select}`,
-    [id, ...entries.map(([, value]) => value)]
+    params
   );
   return rows[0] || null;
 }
 
-export async function supprimer(type, id) {
+export async function supprimer(type, id, { medecinId = null } = {}) {
   const definition = resource(type);
+  const params = [id];
+  let condition = 'id = $1';
+  if (type === 'dossiers' && medecinId != null) {
+    params.push(medecinId);
+    condition += ` AND medecin_id = $${params.length}`;
+  }
   const { rows } = await query(
-    `DELETE FROM ${definition.table} WHERE id = $1 RETURNING id`,
-    [id]
+    `DELETE FROM ${definition.table} WHERE ${condition} RETURNING id`,
+    params
   );
   return rows[0] || null;
 }
