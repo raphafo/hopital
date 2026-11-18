@@ -1,5 +1,6 @@
 import * as Clinical from '../models/clinicalModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
+import { query } from '../config/db.js';
 
 const RE_NOM = /^[\p{L}][\p{L} '\-]{1,79}$/u;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -192,6 +193,23 @@ function description(type, action, values, id) {
   return `${sujet} ${verbe} : ${nom}`;
 }
 
+async function verifierRendezVousDossier(values) {
+  if (!values.rendez_vous_id) return null;
+  const { rows } = await query(
+    'SELECT patient_id, medecin_id FROM rendez_vous WHERE id = $1',
+    [values.rendez_vous_id]
+  );
+  const rendezVous = rows[0];
+  if (!rendezVous) return 'Rendez-vous introuvable.';
+  if (rendezVous.patient_id !== values.patient_id) {
+    return 'Le rendez-vous doit concerner le patient sélectionné.';
+  }
+  if (rendezVous.medecin_id !== values.medecin_id) {
+    return 'Le rendez-vous doit être attribué au médecin sélectionné.';
+  }
+  return null;
+}
+
 export function creerHandlers(type) {
   const valider = VALIDATEURS[type];
   if (!valider) throw new Error(`Validateur inconnu : ${type}`);
@@ -212,6 +230,10 @@ export function creerHandlers(type) {
       if (type === 'rdv') values.created_by = req.user.id;
 
       try {
+        if (type === 'dossiers') {
+          const erreurLien = await verifierRendezVousDossier(values);
+          if (erreurLien) return res.status(400).json({ erreur: 'Données invalides.', champs: { rendez_vous_id: erreurLien } });
+        }
         const record = await Clinical.creer(type, values);
         await enregistrerActivite({
           userId: req.user.id,
@@ -234,7 +256,11 @@ export function creerHandlers(type) {
       }
 
       try {
-        const record = await Clinical.modifier(type, id, values);
+        if (type === 'dossiers') {
+          const erreurLien = await verifierRendezVousDossier(values);
+          if (erreurLien) return res.status(400).json({ erreur: 'Données invalides.', champs: { rendez_vous_id: erreurLien } });
+        }
+        const record = await Clinical.modifier(type, id, values, { medecinId: req.medecinId });
         if (!record) return res.status(404).json({ erreur: 'Enregistrement introuvable.' });
         await enregistrerActivite({
           userId: req.user.id,
@@ -253,7 +279,7 @@ export function creerHandlers(type) {
       if (!id) return;
 
       try {
-        const record = await Clinical.supprimer(type, id);
+        const record = await Clinical.supprimer(type, id, { medecinId: req.medecinId });
         if (!record) return res.status(404).json({ erreur: 'Enregistrement introuvable.' });
         await enregistrerActivite({
           userId: req.user.id,

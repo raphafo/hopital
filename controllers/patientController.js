@@ -49,8 +49,11 @@ export async function supprimer(req, res, next) {
     const id = idValide(req.params.id);
     if (!id) return res.status(400).json({ erreur: 'Identifiant invalide' });
 
-    const patient = await Patients.supprimer(id);
+    const patient = await Patients.supprimer(id, { protegerDossiers: req.user.role === 'secretaire' });
     if (!patient) return res.status(404).json({ erreur: 'Patient introuvable' });
+    if (patient.protege) {
+      return res.status(409).json({ erreur: 'Une secrétaire ne peut pas supprimer un patient ayant un dossier médical.' });
+    }
 
     await enregistrerActivite({
       userId: req.user.id, action: 'suppression', entite: 'patient', entiteId: id,

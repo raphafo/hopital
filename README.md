@@ -9,6 +9,11 @@ Application web de gestion hospitalière (Laboratoire 5) : patients, médecins, 
 - Authentification JWT (cookie httpOnly) + bcrypt
 - Déploiement : Vercel
 
+## Permissions par rôle
+- **Admin** : accès à toutes les pages et ressources, y compris le tableau de bord et les utilisateurs.
+- **Secrétaire** : gestion des patients et des rendez-vous; consultation des médecins; pas d'accès aux dossiers médicaux ni au tableau de bord. Un patient ayant un dossier médical ne peut être supprimé que par un administrateur.
+- **Médecin** : consultation des patients et médecins, gestion de ses rendez-vous assignés (statut uniquement) et de ses dossiers médicaux.
+
 ## Lancer en local
 1. `npm install`
 2. Copier `.env.example` en `.env` et renseigner `DATABASE_URL` et `JWT_SECRET`

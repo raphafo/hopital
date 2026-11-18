@@ -6,6 +6,6 @@ import { exigerRoleEnBase } from '../middleware/roles.js';
 
 const router = Router();
 
-router.get('/', exigerConnexion, exigerRoleEnBase('admin', 'medecin', 'secretaire'), getDashboard);
+router.get('/', exigerConnexion, exigerRoleEnBase('admin'), getDashboard);
 
 export default router;

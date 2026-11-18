@@ -1,15 +1,14 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-// Quand la page 2 (formulaires) existera, mettre son nom ici (ex. 'formulaires.html') :
-// les boutons « Nouveau » et « Modifier » apparaîtront alors automatiquement.
-const PAGE_FORMULAIRES = null;
+const PAGE_FORMULAIRES = 'formulaire.html';
 
 const TAILLE_PAGE = { cartes: 9, tableau: 10 };
 const ONGLETS = {
-  medecins: { url: '/api/medecins', cartes: true,  type: 'medecin', nouveau: 'Nouveau médecin' },
-  patients: { url: '/api/patients', cartes: true,  type: 'patient', nouveau: 'Nouveau patient' },
-  rdv:      { url: '/api/rdv',      cartes: false, type: 'rdv',     nouveau: 'Nouveau rendez-vous' },
+  medecins: { url: '/api/medecins', cartes: true,  type: 'medecins', nouveau: 'Nouveau médecin' },
+  patients: { url: '/api/patients', cartes: true,  type: 'patients', nouveau: 'Nouveau patient' },
+  rdv:      { url: '/api/rdv',      cartes: false, type: 'rdv',      nouveau: 'Nouveau rendez-vous' },
+  dossiers: { url: '/api/dossiers', cartes: false, type: 'dossiers', nouveau: 'Nouveau dossier' },
 };
 const STATUTS = {
   planifie: { libelle: 'Planifié', classe: 'text-bg-primary' },
@@ -28,11 +27,10 @@ let modalDetail, modalConfirmation;
 
 const attr = (texte) => echapper(String(texte ?? '')).replace(/"/g, '&quot;');
 const nombre = (n) => Number(n).toLocaleString('fr-FR');
-const peutModifier = () => ['admin', 'secretaire'].includes(user.role);
-const peutSupprimer = (onglet) => (onglet === 'rdv' ? ['admin', 'secretaire'] : ['admin']).includes(user.role);
+const peut = (onglet, action) => window.POLITIQUE_ROLES[user.role]?.resources[ONGLETS[onglet].type]?.includes(action) || false;
 
 function formaterDate(iso) {
-  const [a, m, j] = iso.split('-').map(Number);
+  const [a, m, j] = iso.slice(0, 10).split('-').map(Number);
   return new Date(a, m - 1, j).toLocaleDateString('fr-FR');
 }
 
@@ -74,14 +72,18 @@ function boutons(onglet, ligne, libelle) {
   const donnees = `data-id="${ligne.id}" data-onglet="${onglet}" data-label="${attr(libelle)}"`;
   let html = '';
   if (onglet !== 'rdv') html += `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="voir" ${donnees}>Voir</button>`;
+  if (onglet === 'dossiers' && ligne.fichier_present) {
+    html += `<a class="btn btn-sm btn-outline-secondary" href="/api/dossiers/${ligne.id}/fichier" target="_blank" rel="noopener">Voir PDF</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/api/dossiers/${ligne.id}/fichier?telecharger=1">Télécharger</a>`;
+  }
   if (onglet === 'rdv' && ligne.statut === 'planifie') {
     html += `<button type="button" class="btn btn-sm btn-outline-success" data-action="terminer" ${donnees}>Terminer</button>`;
     html += `<button type="button" class="btn btn-sm btn-outline-danger" data-action="annuler" ${donnees}>Annuler</button>`;
   }
-  if (PAGE_FORMULAIRES && peutModifier()) {
+  if (peut(onglet, 'update')) {
     html += `<a class="btn btn-sm btn-outline-secondary" href="${attr(lienFormulaire(type, ligne.id))}">Modifier</a>`;
   }
-  if (peutSupprimer(onglet)) html += `<button type="button" class="btn btn-sm btn-outline-danger" data-action="supprimer" ${donnees}>Supprimer</button>`;
+  if (peut(onglet, 'delete')) html += `<button type="button" class="btn btn-sm btn-outline-danger" data-action="supprimer" ${donnees}>Supprimer</button>`;
   return html;
 }
 
@@ -133,6 +135,14 @@ const lignePatient = (p) => `
     <td><span class="badge ${p.assure ? 'text-bg-success' : 'text-bg-warning'}">${p.assure ? 'Assuré' : 'Non assuré'}</span></td>
     <td class="text-end"><div class="d-flex flex-wrap gap-2 justify-content-end">${boutons('patients', p, `${p.prenom} ${p.nom}`)}</div></td></tr>`;
 
+const ligneDossier = (d) => `
+  <tr><td>${echapper(d.patient_prenom)} ${echapper(d.patient_nom)}</td>
+    <td>${d.medecin_nom ? `Dr ${echapper(d.medecin_prenom)} ${echapper(d.medecin_nom)}` : '–'}</td>
+    <td>${echapper(d.diagnostic.slice(0, 100))}${d.diagnostic.length > 100 ? '…' : ''}</td>
+    <td>${formaterDate(d.updated_at)}</td>
+    <td>${d.fichier_present ? 'PDF joint' : 'Aucun PDF'}</td>
+    <td class="text-end"><div class="d-flex flex-wrap gap-2 justify-content-end">${boutons('dossiers', d, `Dossier de ${d.patient_prenom} ${d.patient_nom}`)}</div></td></tr>`;
+
 const ligneRdv = (r) => {
   const s = STATUTS[r.statut];
   const libelle = `${r.patient_prenom} ${r.patient_nom}, ${formaterDate(r.date_rdv)} à ${r.heure_rdv}`;
@@ -159,6 +169,8 @@ function afficher(d, vue) {
     $('#resultats').innerHTML = tableau(['Médecin', 'Spécialité', 'Téléphone', 'Email', 'Disponibilité', ''], d.items.map(ligneMedecin).join(''));
   } else if (o === 'patients') {
     $('#resultats').innerHTML = tableau(['Patient', 'Âge', 'Sexe', 'Groupe', 'Téléphone', 'Assurance', ''], d.items.map(lignePatient).join(''));
+  } else if (o === 'dossiers') {
+    $('#resultats').innerHTML = tableau(['Patient', 'Médecin', 'Diagnostic', 'Mis à jour', 'Pièce jointe', ''], d.items.map(ligneDossier).join(''));
   } else {
     $('#resultats').innerHTML = tableau(['Date', 'Heure', 'Patient', 'Médecin', 'Motif', 'Statut', ''], d.items.map(ligneRdv).join(''));
   }
@@ -215,7 +227,7 @@ function changerOnglet(nom, { garderFiltres = false } = {}) {
 
   const bouton = $('#btn-nouveau');
   const lien = lienFormulaire(ONGLETS[nom].type);
-  bouton.classList.toggle('d-none', !(lien && peutModifier()));
+  bouton.classList.toggle('d-none', !(lien && peut(nom, 'create')));
   bouton.textContent = ONGLETS[nom].nouveau;
   bouton.href = lien || '#';
   charger();
@@ -262,7 +274,7 @@ async function voirDetail(onglet, id) {
         </dl>
         <h3 class="h6">Prochains rendez-vous</h3>
         ${listeRdv(m.prochains_rdv.map((r) => ({ ...r, medecin_nom: null })), 'Aucun rendez-vous à venir.')}`;
-    } else {
+    } else if (onglet === 'patients') {
       const p = d.patient;
       $('#titre-detail').textContent = `${p.prenom} ${p.nom}`;
       $('#corps-detail').innerHTML = `
@@ -279,6 +291,26 @@ async function voirDetail(onglet, id) {
         </dl>
         <h3 class="h6">Derniers rendez-vous</h3>
         ${listeRdv(p.derniers_rdv, 'Aucun rendez-vous enregistré.')}`;
+    } else {
+      const dossier = d.dossier;
+      $('#titre-detail').textContent = `Dossier médical · ${dossier.patient_prenom} ${dossier.patient_nom}`;
+      const medecin = dossier.medecin_nom ? `Dr ${dossier.medecin_prenom} ${dossier.medecin_nom}` : 'Non précisé';
+      const fichier = dossier.fichier_present
+        ? `<p class="d-flex gap-3"><a href="/api/dossiers/${dossier.id}/fichier" target="_blank" rel="noopener">Consulter le PDF</a>
+            <a href="/api/dossiers/${dossier.id}/fichier?telecharger=1">Télécharger le PDF</a></p>`
+        : '<p class="text-muted">Aucun document PDF joint.</p>';
+      $('#corps-detail').innerHTML = `
+        <dl class="row mb-3">
+          ${ligneInfo('Patient', `${echapper(dossier.patient_prenom)} ${echapper(dossier.patient_nom)}`)}
+          ${ligneInfo('Médecin', echapper(medecin))}
+          ${ligneInfo('Rendez-vous lié', dossier.rendez_vous_id ? nombre(dossier.rendez_vous_id) : 'Aucun')}
+          ${ligneInfo('Créé le', formaterDate(dossier.created_at))}
+          ${ligneInfo('Mis à jour le', formaterDate(dossier.updated_at))}
+        </dl>
+        <h3 class="h6">Diagnostic</h3><p class="text-break">${echapper(dossier.diagnostic)}</p>
+        <h3 class="h6">Traitement</h3><p class="text-break">${echapper(dossier.traitement || 'Non renseigné')}</p>
+        <h3 class="h6">Notes</h3><p class="text-break">${echapper(dossier.notes || 'Aucune')}</p>
+        <h3 class="h6">Document joint</h3>${fichier}`;
     }
     modalDetail.show();
   } catch (err) {
@@ -315,8 +347,11 @@ function demanderAction(action, onglet, id, label) {
   if (action === 'supprimer') {
     const messages = {
       medecins: `Supprimer ${label} ? Cette action est définitive.`,
-      patients: `Supprimer ${label} ? Ses rendez-vous et ses dossiers seront aussi supprimés. Cette action est définitive.`,
+      patients: user.role === 'secretaire'
+        ? `Supprimer ${label} ? La suppression est impossible si un dossier médical lui est rattaché.`
+        : `Supprimer ${label} ? Ses rendez-vous et ses dossiers seront aussi supprimés. Cette action est définitive.`,
       rdv: `Supprimer le rendez-vous de ${label} ? Cette action est définitive.`,
+      dossiers: `Supprimer ${label} ? Cette action est définitive.`,
     };
     return confirmer({
       titre: 'Confirmer la suppression', message: messages[onglet], bouton: 'Supprimer',
@@ -391,6 +426,10 @@ $('#btn-reinitialiser').addEventListener('click', () => {
   monterNav('gestion', user);
   modalDetail = new bootstrap.Modal('#modal-detail');
   modalConfirmation = new bootstrap.Modal('#modal-confirmation');
+  const ressources = window.POLITIQUE_ROLES[user.role]?.resources || {};
+  $$('#onglets [data-onglet]').forEach((b) => {
+    b.closest('.nav-item').classList.toggle('d-none', !ressources[ONGLETS[b.dataset.onglet].type]?.includes('read'));
+  });
 
   try {
     const f = await api('/api/medecins/filtres');
@@ -404,5 +443,6 @@ $('#btn-reinitialiser').addEventListener('click', () => {
   $('#vue-chargement').classList.add('d-none');
   $('#vue-gestion').classList.remove('d-none');
   const depart = location.hash.slice(1);
-  changerOnglet(ONGLETS[depart] ? depart : 'medecins');
+  const premierAutorise = Object.keys(ONGLETS).find((onglet) => ressources[ONGLETS[onglet].type]?.includes('read'));
+  changerOnglet(ONGLETS[depart] && ressources[ONGLETS[depart].type]?.includes('read') ? depart : premierAutorise);
 })();

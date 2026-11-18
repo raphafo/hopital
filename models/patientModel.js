@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { pool, query } from '../config/db.js';
 
 export async function lister({ q, sexe, groupe, assure, limite, offset }) {
   const { rows } = await query(`
@@ -56,7 +56,44 @@ export async function trouver(id) {
   return { ...rows[0], derniers_rdv: rdv.rows };
 }
 
-export async function supprimer(id) {
-  const { rows } = await query('DELETE FROM patients WHERE id = $1 RETURNING id, prenom, nom', [id]);
-  return rows[0] || null;
+export async function supprimer(id, { protegerDossiers = false } = {}) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const patient = await client.query(
+      'SELECT id FROM patients WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    if (!patient.rows[0]) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    if (protegerDossiers) {
+      const dossiers = await client.query(
+        'SELECT EXISTS (SELECT 1 FROM dossiers WHERE patient_id = $1) AS presents',
+        [id]
+      );
+      if (dossiers.rows[0].presents) {
+        await client.query('ROLLBACK');
+        return { protege: true };
+      }
+    }
+
+    const suppression = await client.query(
+      'DELETE FROM patients WHERE id = $1 RETURNING id, prenom, nom',
+      [id]
+    );
+    await client.query('COMMIT');
+    return suppression.rows[0] || null;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      err.rollbackError = rollbackError;
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
