@@ -25,6 +25,12 @@ function afficherConnecte(user) {
   if (estAdmin) chargerUtilisateurs();
 }
 
+function redirigerVersFormulaires(user) {
+  if (!['medecin', 'secretaire'].includes(user.role)) return false;
+  location.href = 'formulaire.html';
+  return true;
+}
+
 /* ---------- Validation et erreurs de formulaire ---------- */
 
 function effacerErreurs(form) {
@@ -98,6 +104,7 @@ $('#form-connexion').addEventListener('submit', async (e) => {
       location.href = 'dashboard.html';
       return;
     }
+    if (redirigerVersFormulaires(user)) return;
     afficherConnecte(user);
   } catch (err) {
     if (Object.keys(err.champs || {}).length) afficherErreursChamps(form, err.champs);
@@ -132,6 +139,7 @@ $('#form-inscription').addEventListener('submit', async (e) => {
       },
     });
     form.reset();
+    if (redirigerVersFormulaires(user)) return;
     afficherConnecte(user);
   } catch (err) {
     if (Object.keys(err.champs || {}).length) afficherErreursChamps(form, err.champs);
@@ -221,6 +229,7 @@ $('#corps-utilisateurs').addEventListener('change', async (e) => {
 (async function init() {
   try {
     const { user } = await api('/api/auth/moi');
+    if (redirigerVersFormulaires(user)) return;
     afficherConnecte(user);
   } catch {
     afficherVue('anonyme');
