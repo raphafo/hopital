@@ -1,11 +1,14 @@
+// Traduction des rôles pour les afficher dans l’interface.
 const LIBELLES_ROLES = { admin: 'Administrateur', medecin: 'Médecin', secretaire: 'Secrétaire' };
 
+// Protège les textes affichés contre l’injection de code HTML.
 function echapperHtml(texte) {
   const d = document.createElement('div');
   d.textContent = texte ?? '';
   return d.innerHTML.replace(/"/g, '&quot;');
 }
 
+// Vérifie si un utilisateur est connecté et affiche les actions adaptées.
 async function chargerSession({ exiger = false } = {}) {
   let user = null;
   try { ({ user } = await api('/api/auth/moi')); } catch { /* visiteur non connecté */ }

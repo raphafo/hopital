@@ -1,488 +1,183 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Application de gestion hospitalière : patients, médecins, rendez-vous et dossiers médicaux.">
-    <title>Gestion hospitalière | Accueil</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/style.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Application de gestion hospitalière : patients, médecins, rendez-vous et dossiers médicaux.">
+  <title>CarePlus — Gestion hospitalière</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-    <a class="lien-evitement" href="#contenu-principal">
-        Aller au contenu
-    </a>
-    <nav class="navbar navbar-expand-lg navbar-hopital sticky-top"
-         aria-label="Navigation principale"
-         data-bs-theme="dark">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="accueil.html">
-                Gestion hospitalière
-            </a>
-            <button class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#menu-principal"
-                    aria-controls="menu-principal"
-                    aria-expanded="false"
-                    aria-label="Ouvrir ou fermer le menu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="menu-principal">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                    <li class="nav-item">
-                        <a class="nav-link active"
-                           href="#accueil"
-                           aria-current="page">
-                            Accueil
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#services">
-                            Services
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#presentation">
-                            Présentation
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#contact">
-                            Contact
-                        </a>
-                    </li>
-                    <li class="nav-item d-flex align-items-center gap-2 ms-lg-2"
-                        id="zone-session">
-                    </li>
-                </ul>
-            </div>
+  <!-- Lien accessible pour passer directement au contenu principal. -->
+  <a class="lien-evitement" href="#contenu-principal">Aller au contenu</a>
+
+  <!-- Barre de navigation et accès aux différentes pages. -->
+  <nav class="navbar navbar-expand-lg navbar-hopital sticky-top" aria-label="Navigation principale" data-bs-theme="dark">
+    <div class="container">
+      <a class="navbar-brand marque" href="accueil.html" aria-label="CarePlus, accueil">
+        <span class="marque-icone" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img"><path d="M20 7h8v13h13v8H28v13h-8V28H7v-8h13z"/></svg>
+        </span>
+        <span>Care<span>Plus</span><small>GESTION HOSPITALIÈRE</small></span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal"
+        aria-controls="menu-principal" aria-expanded="false" aria-label="Ouvrir ou fermer le menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="menu-principal">
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+          <li class="nav-item"><a class="nav-link active" href="#accueil" aria-current="page">Accueil</a></li>
+          <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+          <li class="nav-item"><a class="nav-link" href="#presentation">À propos</a></li>
+          <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+          <li class="nav-item ms-lg-3"><a class="btn btn-nav" href="formulaire.html">Espace de gestion <span aria-hidden="true">→</span></a></li>
+          <li class="nav-item d-flex align-items-center gap-2 ms-lg-2" id="zone-session"></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Bannière principale avec présentation et image de l’établissement. -->
+  <header class="hero-hopital" id="accueil">
+    <div class="hero-decoration hero-decoration-un" aria-hidden="true"></div>
+    <div class="hero-decoration hero-decoration-deux" aria-hidden="true"></div>
+    <div class="container position-relative">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6">
+          <span class="badge-hero"><span></span> UNE ORGANISATION PLUS SIMPLE</span>
+          <h1>La santé mérite une <em>gestion</em> sans complication.</h1>
+          <p class="hero-texte">Une plateforme centralisée pour organiser les patients, accompagner les équipes médicales et assurer le suivi des consultations.</p>
+          <div class="d-flex flex-wrap gap-3 mt-4">
+            <a class="btn btn-hero" href="formulaire.html">Accéder aux formulaires <span aria-hidden="true">→</span></a>
+            <a class="btn btn-hero-second" href="#services">Découvrir nos services</a>
+          </div>
+          <div class="hero-points mt-4">
+            <span><b aria-hidden="true">✓</b> Données centralisées</span>
+            <span><b aria-hidden="true">✓</b> Accès sécurisé</span>
+          </div>
         </div>
-    </nav>
-    <main id="contenu-principal">
-        <header class="hero-hopital" id="accueil">
-            <div class="container">
-                <div class="row align-items-center g-5">
-                    <div class="col-lg-6">
-                        <p class="surtitre">
-                            Votre santé, notre priorité
-                        </p>
-                        <h1 class="display-4 fw-bold">
-                            Une gestion hospitalière
-                            <span>simple et fiable</span>
-                        </h1>
-                        <p class="hero-description">
-                            Une application conçue pour faciliter
-                            la gestion des patients, des médecins,
-                            des rendez-vous et des dossiers médicaux
-                            au sein d'un établissement hospitalier.
-                        </p>
-                        <div class="d-flex flex-wrap gap-3 mt-4">
-                            <a href="formulaire.html"
-                               class="btn btn-light btn-lg fw-semibold">
-                                Accéder aux formulaires
-                            </a>
-                            <a href="#services"
-                               class="btn btn-outline-light btn-lg">
-                                Nos services
-                            </a>
-                        </div>
-                        <div class="hero-information mt-4">
-                            <span>
-                                ✓ Gestion centralisée
-                            </span>
-                            <span>
-                                ✓ Accès sécurisé
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <figure class="photo-equipe">
-                            <img src="image/medecin.png"
-                                 alt="Équipe de médecins de l'établissement hospitalier"
-                                 class="img-fluid"
-                                 width="900"
-                                 height="600">
-                            <figcaption>
-                                Une équipe médicale à votre écoute
-                            </figcaption>
-                        </figure>
-                    </div>
-                </div>
-            </div>
-        </header>
-        <section class="section-espace py-5"
-                 id="services"
-                 aria-labelledby="titre-services">
-            <div class="container">
-                <header class="entete-section text-center mb-5">
-                    <p class="surtitre sombre">
-                        Ce que nous proposons
-                    </p>
-                    <h2 id="titre-services">
-                        Nos services
-                    </h2>
-                    <p>
-                        Découvrez les fonctionnalités essentielles
-                        de notre application hospitalière.
-                    </p>
-                </header>
-                <div class="row g-4">
-                    <div class="col-sm-6 col-lg-3">
-                        <article class="card carte-service h-100">
-                            <div class="card-body">
-                                <span class="icone-service"
-                                      aria-hidden="true">
-                                    P
-                                </span>
-                                <h3 class="h5">
-                                    Gestion des patients
-                                </h3>
-                                <p>
-                                    Enregistrement, modification
-                                    et suivi des informations
-                                    de chaque patient.
-                                </p>
-                                <a href="formulaire.html"
-                                   class="lien-service">
-                                    En savoir plus →
-                                </a>
-                            </div>
-                        </article>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-
-                        <article class="card carte-service h-100">
-
-                            <div class="card-body">
-
-                                <span class="icone-service"
-                                      aria-hidden="true">
-                                    M
-                                </span>
-
-                                <h3 class="h5">
-                                    Gestion des médecins
-                                </h3>
-
-                                <p>
-                                    Consultation des fiches,
-                                    spécialités et disponibilités
-                                    de l'équipe médicale.
-                                </p>
-
-                                <a href="formulaire.html"
-                                   class="lien-service">
-
-                                    En savoir plus →
-
-                                </a>
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
-
-                    
-
-                    <div class="col-sm-6 col-lg-3">
-
-                        <article class="card carte-service h-100">
-
-                            <div class="card-body">
-
-                                <span class="icone-service"
-                                      aria-hidden="true">
-                                    R
-                                </span>
-
-                                <h3 class="h5">
-                                    Rendez-vous
-                                </h3>
-
-                                <p>
-                                    Planification des consultations,
-                                    gestion des horaires et suivi
-                                    des rendez-vous.
-                                </p>
-
-                                <a href="formulaire.html"
-                                   class="lien-service">
-
-                                    En savoir plus →
-
-                                </a>
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
-
-                    <!-- Service Dossiers -->
-
-                    <div class="col-sm-6 col-lg-3">
-
-                        <article class="card carte-service h-100">
-
-                            <div class="card-body">
-
-                                <span class="icone-service"
-                                      aria-hidden="true">
-                                    D
-                                </span>
-
-                                <h3 class="h5">
-                                    Dossiers médicaux
-                                </h3>
-
-                                <p>
-                                    Gestion des dossiers médicaux
-                                    et consultation des statistiques
-                                    hospitalières.
-                                </p>
-
-                                <a href="formulaire.html"
-                                   class="lien-service">
-
-                                    En savoir plus →
-
-                                </a>
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-       
-
-        <section class="section-presentation py-5"
-                 id="presentation"
-                 aria-labelledby="titre-presentation">
-
-            <div class="container">
-
-                <div class="row align-items-center g-5">
-
-                    <div class="col-lg-6">
-
-                        <p class="surtitre sombre">
-                            À propos de notre application
-                        </p>
-
-                        <h2 id="titre-presentation">
-                            Une solution pour simplifier
-                            la gestion hospitalière
-                        </h2>
-
-                        <p>
-                            La gestion hospitalière est une application
-                            web destinée à faciliter l'organisation
-                            et le suivi des activités d'un établissement
-                            de santé.
-                        </p>
-
-                        <p>
-                            Elle centralise les informations relatives
-                            aux patients, aux médecins, aux rendez-vous
-                            et aux dossiers médicaux.
-                        </p>
-
-                        <p>
-                            Chaque utilisateur bénéficie d'un accès
-                            aux fonctionnalités autorisées selon
-                            son rôle : administrateur, médecin
-                            ou secrétaire.
-                        </p>
-
-                        <a href="formulaire.html"
-                           class="btn btn-principal mt-3">
-
-                            Découvrir l'application
-
-                        </a>
-
-                    </div>
-
-
-                    <div class="col-lg-6">
-
-                        <div class="bloc-presentation">
-
-                            <div class="presentation-icon">
-                                +
-                            </div>
-
-                            <h3>
-                                Une meilleure organisation
-                                des services hospitaliers
-                            </h3>
-
-                            <p>
-                                Notre objectif est de rendre les
-                                informations plus accessibles et
-                                de faciliter le travail quotidien
-                                du personnel hospitalier.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-    
-
-        <section class="section-contact py-5"
-                 id="contact"
-                 aria-labelledby="titre-contact">
-
-            <div class="container">
-
-                <header class="entete-section text-center mb-4">
-
-                    <p class="surtitre sombre">
-                        Restons en contact
-                    </p>
-
-                    <h2 id="titre-contact">
-                        Nous contacter
-                    </h2>
-
-                    <p>
-                        Retrouvez nos coordonnées pour toute
-                        information complémentaire.
-                    </p>
-
-                </header>
-
-
-                <div class="card carte-contact">
-
-                    <div class="card-body p-4">
-
-                        <address class="row g-4 mb-0"
-                                 style="font-style: normal;">
-
-
-                            <div class="col-md-4">
-
-                                <div class="contact-element">
-
-                                    <h3 class="h5">
-                                        Adresse
-                                    </h3>
-
-                                    <p class="mb-0">
-                                        Port-Louis, Maurice
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="col-md-4">
-
-                                <div class="contact-element">
-
-                                    <h3 class="h5">
-                                        Téléphone
-                                    </h3>
-
-                                    <p class="mb-0">
-
-                                        <a href="tel:+23054542020">
-                                            +230 5454 2020
-                                        </a>
-
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="col-md-4">
-
-                                <div class="contact-element">
-
-                                    <h3 class="h5">
-                                        Email
-                                    </h3>
-
-                                    <p class="mb-0">
-
-                                        <a href="mailto:medecin@hopital.mu">
-                                            medecin@hopital.mu
-                                        </a>
-
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                        </address>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-   
-
-    <footer class="pied-hopital">
-
-        <div class="container">
-
-            <div class="d-flex flex-wrap justify-content-between gap-3">
-
-                <strong>
-                    Gestion hospitalière
-                </strong>
-
-                <span>
-                    © 2026 · Projet Laboratoire 5 · MCCI
-                </span>
-
-            </div>
-
+        <div class="col-lg-6">
+          <figure class="hero-photo mb-0">
+            <img src="image/medecin.png" alt="Professionnels de santé de l'équipe hospitalière" class="img-fluid" width="900" height="600">
+            <figcaption><span class="photo-puce" aria-hidden="true">✚</span><span><strong>Au cœur de nos priorités</strong><small>Le patient et la qualité des soins</small></span></figcaption>
+          </figure>
+          <div class="hero-stat" aria-label="Quatre modules de gestion">
+            <strong>04</strong><span>modules essentiels<br>pour votre établissement</span>
+          </div>
         </div>
+      </div>
+    </div>
+  </header>
 
-    </footer>
+  <main id="contenu-principal">
+    <!-- Présentation des quatre modules de gestion hospitalière. -->
+    <section class="section-blanche section-services" id="services" aria-labelledby="titre-services">
+      <div class="container">
+        <div class="entete-section">
+          <span class="surtitre">NOS FONCTIONNALITÉS</span>
+          <h2 id="titre-services">Tout le nécessaire, <em>au même endroit.</em></h2>
+          <p>Des outils conçus pour simplifier les tâches administratives et faciliter le suivi médical.</p>
+        </div>
+        <div class="row g-4">
+          <div class="col-sm-6 col-xl-3">
+            <article class="carte-service">
+              <div class="service-icone icone-patient" aria-hidden="true">♙</div>
+              <span class="service-numero">01</span>
+              <h3>Gestion des patients</h3>
+              <p>Créez et mettez à jour les fiches des patients, leurs coordonnées et leurs informations utiles.</p>
+              <a href="formulaire.html">Gérer les patients <span aria-hidden="true">→</span></a>
+            </article>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <article class="carte-service">
+              <div class="service-icone icone-medecin" aria-hidden="true">✚</div>
+              <span class="service-numero">02</span>
+              <h3>Gestion des médecins</h3>
+              <p>Consultez les profils, les spécialités et les disponibilités des professionnels de santé.</p>
+              <a href="formulaire.html">Gérer les médecins <span aria-hidden="true">→</span></a>
+            </article>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <article class="carte-service">
+              <div class="service-icone icone-rdv" aria-hidden="true">▦</div>
+              <span class="service-numero">03</span>
+              <h3>Rendez-vous médicaux</h3>
+              <p>Planifiez les consultations et suivez leur état : planifié, terminé ou annulé.</p>
+              <a href="formulaire.html">Gérer les rendez-vous <span aria-hidden="true">→</span></a>
+            </article>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <article class="carte-service">
+              <div class="service-icone icone-dossier" aria-hidden="true">▤</div>
+              <span class="service-numero">04</span>
+              <h3>Dossiers médicaux</h3>
+              <p>Centralisez les diagnostics, traitements, notes et pièces jointes des patients.</p>
+              <a href="formulaire.html">Gérer les dossiers <span aria-hidden="true">→</span></a>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
+    <!-- Présentation du projet et vidéo de démonstration. -->
+    <section class="section-presentation" id="presentation" aria-labelledby="titre-presentation">
+      <div class="container">
+        <div class="row align-items-center g-5">
+          <div class="col-lg-6">
+            <span class="surtitre">À PROPOS DE CAREPLUS</span>
+            <h2 id="titre-presentation">Une meilleure organisation pour <em>mieux accompagner.</em></h2>
+            <p>CarePlus est une application web de gestion hospitalière qui rassemble les informations essentielles d'un établissement dans un espace unique.</p>
+            <p>Selon son rôle, chaque utilisateur dispose des accès nécessaires pour gérer les patients, les médecins, les rendez-vous et les dossiers médicaux.</p>
+            <ul class="liste-atouts">
+              <li><span aria-hidden="true">✓</span> Une interface claire et facile à utiliser</li>
+              <li><span aria-hidden="true">✓</span> Des formulaires avec validation des informations</li>
+              <li><span aria-hidden="true">✓</span> Des accès adaptés aux rôles des utilisateurs</li>
+            </ul>
+            <a class="btn btn-principal mt-3" href="formulaire.html">Découvrir l'espace de gestion <span aria-hidden="true">→</span></a>
+          </div>
+          <div class="col-lg-6">
+            <div class="bloc-media">
+              <div class="media-entete"><span class="media-point"></span><span class="media-point"></span><span class="media-point"></span><span class="ms-2">Présentation de l'application</span></div>
+              <video controls preload="metadata" poster="image/medecin.png" aria-label="Vidéo de présentation de l'application CarePlus">
+                <source src="video/presentation.mp4" type="video/mp4">
+              </video> 
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Coordonnées de contact du projet. -->
+    <section class="section-contact" id="contact" aria-labelledby="titre-contact">
+      <div class="container">
+        <div class="contact-bloc">
+          <div><span class="surtitre surtitre-clair">UNE QUESTION ?</span><h2 id="titre-contact">Restons en contact.</h2><p>Pour toute question concernant le projet, vous pouvez utiliser les coordonnées ci-dessous.</p></div>
+          <address>
+            <div><span aria-hidden="true">⌖</span><p><strong>Adresse</strong><br>Port-Louis, Maurice</p></div>
+            <div><span aria-hidden="true">☎</span><p><strong>Téléphone</strong><br><a href="tel:+23054542020">+230 5454 2020</a></p></div>
+            <div><span aria-hidden="true">✉</span><p><strong>Email</strong><br><a href="mailto:medecin@hopital.mu">medecin@hopital.mu</a></p></div>
+          </address>
+        </div>
+      </div>
+    </section>
+  </main>
 
-    <script src="js/api.js"></script>
+  <!-- Pied de page et lien de retour en haut. -->
+  <footer class="pied-hopital">
+    <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <a class="marque marque-footer" href="accueil.html"><span class="marque-icone" aria-hidden="true">✚</span><span>Care<span>Plus</span><small>GESTION HOSPITALIÈRE</small></span></a>
+      <span>© 2026 CarePlus · </span>
+      <a href="#accueil" class="retour-haut">Retour en haut ↑</a>
+    </div>
+  </footer>
 
-    <script src="js/session.js"></script>
-
-    <script src="js/main.js"></script>
-
+  <!-- Bootstrap et scripts qui gèrent l’API, la session et la page d’accueil. -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/main.js"></script>
 </body>
-
 </html>

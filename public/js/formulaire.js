@@ -1,9 +1,12 @@
+// Raccourci pour sélectionner un élément HTML.
 const $ = (sel) => document.querySelector(sel);
+// Catégories accessibles selon le rôle de l’utilisateur.
 const ONGLETS_PAR_ROLE = {
   admin: ['patients', 'medecins', 'rdv', 'dossiers'],
   secretaire: ['patients', 'rdv'],
   medecin: ['rdv', 'dossiers'],
 };
+// Valeurs proposées dans les listes déroulantes.
 const SPECIALITES = ['Médecine générale', 'Cardiologie', 'Pédiatrie', 'Orthopédie', 'Dermatologie'];
 const GROUPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const STATUTS = { planifie: 'Planifié', termine: 'Terminé', annule: 'Annulé' };
@@ -12,6 +15,7 @@ const RE_NOM = /^[\p{L}][\p{L} '\-]{1,79}$/u;
 const RE_TEL = /^5\d{3} ?\d{4}$/;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+// Données chargées depuis l’API pour chaque catégorie.
 const donnees = { patients: [], medecins: [], rdv: [], dossiers: [] };
 let courant = 'patients';
 let edition = null;
@@ -28,6 +32,7 @@ const optRdvDuPatient = () => {
   const pid = $('#formulaire')?.elements.patient_id?.value;
   return donnees.rdv.filter((r) => r.patient_id == pid).map((r) => [r.id, `${dateFr(r.date_rdv)} ${heure(r.heure_rdv)} · ${r.motif}`]);
 };
+// Configuration des formulaires : champs, règles et routes API.
 const FORMS = {
   patients: {
     url: '/api/patients', onglet: 'Patients', article: 'le patient', titre: 'Nouveau patient', liste: 'Derniers patients',
@@ -94,6 +99,7 @@ const FORMS = {
   },
 };
 
+// Génère le code HTML d’un champ selon son type.
 function champHtml(c) {
   const id = `f-${c.n}`;
   const col = c.w ? 'col-12' : 'col-md-6';
@@ -109,12 +115,14 @@ function champHtml(c) {
   return `<div class="${col}"><label class="form-label" for="${id}">${c.l}${c.req ? ' <span aria-hidden="true">*</span>' : ''}</label>${ctrl}<div class="invalid-feedback"></div></div>`;
 }
 
+// Remplit une liste déroulante avec les données disponibles.
 function remplirSelect(c) {
   const el = $('#formulaire').elements[c.n];
   const vide = c.vide ? `<option value="">${c.vide}</option>` : '';
   el.innerHTML = vide + c.opt().map(([v, l]) => `<option value="${echapperHtml(String(v))}">${echapperHtml(l)}</option>`).join('');
 }
 
+// Affiche le formulaire, les onglets et les derniers enregistrements.
 function afficher() {
   const f = FORMS[courant];
   const form = $('#formulaire');
@@ -148,12 +156,14 @@ function afficher() {
     : '<li class="text-muted small">Aucun enregistrement. Remplissez le formulaire pour commencer.</li>';
 }
 
+// Affiche un message de succès ou d’erreur.
 function alerte(type, texte) {
   const a = $('#alerte-form');
   a.className = `alert alert-${type}`;
   a.textContent = texte;
 }
 
+// Met en évidence les champs qui doivent être corrigés.
 function montrerErreurs(champs) {
   const form = $('#formulaire');
   form.querySelectorAll('.is-invalid').forEach((e) => e.classList.remove('is-invalid'));
@@ -168,12 +178,14 @@ function montrerErreurs(champs) {
 }
 
 
+// Récupère les enregistrements depuis les différentes routes API.
 async function chargerDonnees() {
   const cles = Object.keys(donnees);
   const reponses = await Promise.allSettled(cles.map((k) => api(FORMS[k].url)));
   reponses.forEach((r, i) => { donnees[cles[i]] = r.status === 'fulfilled' ? (r.value[cles[i]] || []) : []; });
 }
 
+// Transforme les valeurs saisies en objet prêt à envoyer au serveur.
 function lireFormulaire(f) {
   const form = $('#formulaire');
   const v = {};
@@ -187,6 +199,7 @@ function lireFormulaire(f) {
   return v;
 }
 
+// Vérifie les champs obligatoires et les formats des valeurs.
 function valider(f, v, fichier) {
   const e = {};
   const aujourdhui = new Date().toLocaleDateString('sv-SE');
@@ -201,6 +214,7 @@ function valider(f, v, fichier) {
   return e;
 }
 
+// Convertit une pièce jointe en Base64 pour son envoi.
 const versBase64 = (fichier) => new Promise((ok, ko) => {
   const r = new FileReader();
   r.onload = () => ok(String(r.result).split(',')[1]);
@@ -208,6 +222,7 @@ const versBase64 = (fichier) => new Promise((ok, ko) => {
   r.readAsDataURL(fichier);
 });
 
+// Traite les erreurs renvoyées par le serveur.
 function gererErreur(err) {
   if (err.status === 401) { location.href = 'auth.html'; return; }
   if (Object.keys(err.champs || {}).length) {
@@ -218,6 +233,7 @@ function gererErreur(err) {
   }
 }
 
+// Recharge les données puis actualise l’affichage.
 async function rafraichir() {
   await chargerDonnees();
   afficher();
@@ -225,6 +241,7 @@ async function rafraichir() {
 
 
 
+// Écoute le changement de catégorie dans les onglets.
 $('#onglets').addEventListener('click', (e) => {
   const b = e.target.closest('[data-onglet]');
   if (!b) return;
@@ -249,6 +266,7 @@ $('#formulaire').addEventListener('click', (e) => {
   afficher();
 });
 
+// Vérifie puis enregistre les informations saisies.
 $('#formulaire').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = FORMS[courant];
