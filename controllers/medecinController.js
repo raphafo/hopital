@@ -1,12 +1,17 @@
+// Routes spécifiques aux médecins : liste, valeurs des filtres, détail, suppression.
+// L'ajout et la modification passent par clinicalController.js
+
 import * as Medecins from '../models/medecinModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
 import { lirePagination, lireRecherche, lireFiltres, reponsePage, idValide } from '../utils/filtres.js';
 
+// GET /api/medecins?q=...&specialite=...&disponible=...&page=...
 export async function lister(req, res, next) {
   try {
     const { filtres, erreur } = lireFiltres(req.query, { specialite: { texte: true }, disponible: { booleen: true } });
     if (erreur) return res.status(400).json({ erreur: `Paramètre invalide : ${erreur}` });
 
+    // sans page/limite on renvoie toute la liste
     const paginationActive = req.query.page != null || req.query.limite != null;
     const pagination = lirePagination(req.query, { limiteParDefaut: 9 });
     const { items, total } = await Medecins.lister({
@@ -24,6 +29,7 @@ export async function lister(req, res, next) {
   }
 }
 
+// GET /api/medecins/filtres : spécialités et médecins pour remplir les listes de filtres de gestion.html
 export async function listeFiltres(req, res, next) {
   try {
     res.json(await Medecins.filtres());
@@ -32,6 +38,7 @@ export async function listeFiltres(req, res, next) {
   }
 }
 
+// GET /api/medecins/:id : fiche d'un médecin
 export async function detail(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -45,6 +52,7 @@ export async function detail(req, res, next) {
   }
 }
 
+// DELETE /api/medecins/:id
 export async function supprimer(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -59,6 +67,7 @@ export async function supprimer(req, res, next) {
     });
     res.json({ message: 'Médecin supprimé' });
   } catch (err) {
+    // 23503 = clé étrangère : la base refuse car le médecin a encore des rendez-vous (ON DELETE RESTRICT)
     if (err.code === '23503') {
       return res.status(409).json({ erreur: 'Ce médecin a des rendez-vous : suppression impossible.' });
     }

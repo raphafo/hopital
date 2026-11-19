@@ -1,10 +1,13 @@
+// Routes spécifiques aux rendez-vous : liste, changement de statut, suppression.
+// L'ajout et la modification passent par clinicalController.js
+
 import * as Rdv from '../models/rdvModel.js';
 import * as Medecins from '../models/medecinModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
 import { lirePagination, lireRecherche, lireFiltres, reponsePage, idValide } from '../utils/filtres.js';
 
 const STATUTS = ['planifie', 'termine', 'annule'];
-const LIBELLES = { termine: 'terminé', annule: 'annulé' };
+const LIBELLES = { termine: 'terminé', annule: 'annulé' }; // pour le texte de l'historique
 
 // Un médecin ne voit que ses propres rendez-vous (-1 : aucun médecin lié au compte, donc aucun résultat)
 async function restrictionMedecin(req) {
@@ -12,6 +15,8 @@ async function restrictionMedecin(req) {
   return (await Medecins.idParUtilisateur(req.user.id)) ?? -1;
 }
 
+// GET /api/rdv?q=...&statut=...&medecin_id=...&date_debut=...&date_fin=...&page=...
+// pour un médecin, on force le filtre sur ses rendez-vous quoi qu'il envoie
 export async function lister(req, res, next) {
   try {
     const { filtres, erreur } = lireFiltres(req.query, {
@@ -45,6 +50,8 @@ export async function lister(req, res, next) {
   }
 }
 
+// PATCH /api/rdv/:id/statut  { statut: 'termine' | 'annule' }
+// seulement sur un rdv encore planifié, et un médecin seulement sur les siens
 export async function changerStatut(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -66,6 +73,7 @@ export async function changerStatut(req, res, next) {
       return res.status(409).json({ erreur: 'Seul un rendez-vous planifié peut être modifié.' });
     }
 
+    // la requête SQL revérifie "planifie" au cas où quelqu'un l'aurait changé entre-temps
     if (!(await Rdv.changerStatut(id, statut))) {
       return res.status(409).json({ erreur: 'Seul un rendez-vous planifié peut être modifié.' });
     }
@@ -79,6 +87,8 @@ export async function changerStatut(req, res, next) {
   }
 }
 
+// DELETE /api/rdv/:id
+// on lit d'abord le rdv pour avoir les noms à mettre dans l'historique
 export async function supprimer(req, res, next) {
   try {
     const id = idValide(req.params.id);

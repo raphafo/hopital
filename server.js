@@ -1,19 +1,26 @@
-import 'dotenv/config';
+// Point d'entrée du serveur.
+// Les URL qui commencent par /api vont vers l'API, le reste sert les fichiers de public/.
+
+import 'dotenv/config'; // charge le fichier .env (DATABASE_URL, JWT_SECRET...)
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import routes from './routes/index.js';
 
+// __dirname n'existe pas avec "import", donc on le recrée
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// pour lire le JSON envoyé par les pages (3 Mo max à cause des PDF)
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
+// pour lire les cookies, c'est là qu'on garde le jeton de connexion
 app.use(cookieParser());
 
 // API
 app.use('/api', routes);
+// route /api inconnue : on renvoie une 404 en JSON
 app.use('/api', (req, res) => {
   res.status(404).json({ erreur: 'Route introuvable' });
 });
@@ -22,6 +29,8 @@ app.use('/api', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Gestion centralisée des erreurs
+// toutes les erreurs passées avec next(err) arrivent ici
+// pour une erreur 500 on ne montre pas le détail technique à l'utilisateur
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
@@ -36,4 +45,5 @@ if (!process.env.VERCEL) {
   app.listen(port, () => console.log(`Serveur démarré sur http://localhost:${port}`));
 }
 
+// Vercel utilise cet export pour lancer l'app
 export default app;

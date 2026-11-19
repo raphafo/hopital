@@ -1,3 +1,6 @@
+/* Styles communs à toutes les pages (chargé après Bootstrap pour pouvoir le surcharger) */
+
+/* couleurs du site, réutilisées partout avec var(--nom) */
 :root {
   --couleur-principale: #0f766e;
   --couleur-principale-fonce: #0b5a54;
@@ -12,11 +15,40 @@ body {
   min-height: 100vh;
 }
 
-.navbar-hopital { background: var(--couleur-principale); }
-.navbar-hopital .navbar-brand,
-.navbar-hopital .nav-link { color: #fff; }
-.navbar-hopital .nav-link:hover { color: #d7f2ef; }
+/* Barre de navigation commune (générée par js/nav.js sur toutes les pages) */
+.navbar-hopital {
+  background: var(--couleur-principale);
+  padding: .75rem 0;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, .08);
+}
+.navbar-hopital .navbar-brand { color: #fff; font-size: 1.2rem; }
+.navbar-hopital .nav-link { color: #fff; font-weight: 500; }
+.navbar-hopital .nav-link:hover,
+.navbar-hopital .nav-link:focus { color: #d7f2ef; }
+.navbar-hopital .nav-link.active { color: #fff; box-shadow: inset 0 -2px 0 #fff; }
+.navbar-hopital .navbar-toggler { border-color: rgba(255, 255, 255, .6); }
 
+/* nom et rôle de l'utilisateur connecté dans la barre */
+.pastille-session {
+  background: rgba(255, 255, 255, .2);
+  color: #fff;
+  padding: .3rem .9rem;
+  border-radius: 999px;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+/* bouton Déconnexion qui ressemble à un lien */
+.btn-deconnexion {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  font-weight: 500;
+}
+.btn-deconnexion:hover,
+.btn-deconnexion:focus { color: #d7f2ef; text-decoration: underline; }
+
+/* bouton vert du site */
 .btn-principal {
   background: var(--couleur-principale);
   border-color: var(--couleur-principale);
@@ -29,17 +61,20 @@ body {
   color: #fff;
 }
 
+/* cartes blanches arrondies de la page de connexion */
 .carte-auth {
   border: 0;
   border-radius: 1rem;
   box-shadow: 0 8px 30px rgba(15, 118, 110, .12);
 }
 
+/* onglets en pilule (connexion/inscription, onglets de gestion) */
 .nav-pills .nav-link { color: var(--couleur-principale); font-weight: 500; }
 .nav-pills .nav-link.active { background: var(--couleur-principale); color: #fff; }
 
 .table-utilisateurs td { vertical-align: middle; }
 
+/* champs de formulaire aux couleurs du site au lieu du bleu de Bootstrap */
 .form-check-input:checked {
   background-color: var(--couleur-principale);
   border-color: var(--couleur-principale);
@@ -49,4 +84,5 @@ body {
   box-shadow: 0 0 0 .25rem rgba(15, 118, 110, .2);
 }
 
-.navbar-hopital .nav-link.active { color: #fff; border-bottom: 2px solid #fff; }
+/* logo dans la barre de navigation */
+.logo-hopital { width: 36px; height: 36px; flex-shrink: 0; }

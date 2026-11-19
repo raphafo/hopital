@@ -1,34 +1,46 @@
+// Script de la page gestion.html : affichage des médecins, patients, rendez-vous et dossiers
+// en cartes ou en tableau, avec recherche, filtres, pagination, détail et suppression.
+
+// raccourcis : $ = un élément, $$ = tous les éléments (en tableau)
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
+// page où se font l'ajout et la modification
 const PAGE_FORMULAIRES = 'formulaire.html';
 
+// nombre d'éléments par page selon la vue
 const TAILLE_PAGE = { cartes: 9, tableau: 10 };
+// réglages de chaque onglet : adresse de l'API, vue cartes possible ou non, texte du bouton d'ajout
 const ONGLETS = {
   medecins: { url: '/api/medecins', cartes: true,  type: 'medecins', nouveau: 'Nouveau médecin' },
   patients: { url: '/api/patients', cartes: true,  type: 'patients', nouveau: 'Nouveau patient' },
   rdv:      { url: '/api/rdv',      cartes: false, type: 'rdv',      nouveau: 'Nouveau rendez-vous' },
   dossiers: { url: '/api/dossiers', cartes: false, type: 'dossiers', nouveau: 'Nouveau dossier' },
 };
+// texte et couleur des badges de statut
 const STATUTS = {
   planifie: { libelle: 'Planifié', classe: 'text-bg-primary' },
   termine:  { libelle: 'Terminé',  classe: 'text-bg-success' },
   annule:   { libelle: 'Annulé',   classe: 'text-bg-danger' },
 };
 
-let user = null;
+let user = null; // utilisateur connecté
+// où on en est : onglet ouvert, vue cartes/tableau, numéro de page
 let etat = { onglet: 'medecins', vue: 'cartes', page: 1 };
 let jeton = 0;               // ignore les réponses périmées quand l'utilisateur tape vite
-let actionConfirmee = null;
-let minuterieAlerte = null;
-let modalDetail, modalConfirmation;
+let actionConfirmee = null; // action à lancer si on clique Confirmer dans la fenêtre
+let minuterieAlerte = null; // pour cacher le message de succès après 5 s
+let modalDetail, modalConfirmation; // les fenêtres Bootstrap (détail et confirmation)
 
 /* ---------- Utilitaires ---------- */
 
+// échappe un texte pour le mettre dans un attribut HTML (entre guillemets)
 const attr = (texte) => echapper(String(texte ?? '')).replace(/"/g, '&quot;');
 const nombre = (n) => Number(n).toLocaleString('fr-FR');
+// vrai si le rôle connecté a le droit de faire cette action sur cet onglet (voir permissions.js)
 const peut = (onglet, action) => window.POLITIQUE_ROLES[user.role]?.resources[ONGLETS[onglet].type]?.includes(action) || false;
 
+// "2026-11-19" devient "19/11/2026"
 function formaterDate(iso) {
   const [a, m, j] = iso.slice(0, 10).split('-').map(Number);
   return new Date(a, m - 1, j).toLocaleDateString('fr-FR');
@@ -38,6 +50,7 @@ function initiales(prenom, nom) {
   return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
 }
 
+// photo si une adresse http(s) existe, sinon un rond avec les initiales
 function avatar(prenom, nom, photo) {
   if (photo && /^https?:\/\//i.test(photo)) {
     return `<img class="avatar-initiales" src="${attr(photo)}" alt="Photo de ${attr(prenom)} ${attr(nom)}">`;
@@ -45,6 +58,7 @@ function avatar(prenom, nom, photo) {
   return `<div class="avatar-initiales" aria-hidden="true">${echapper(initiales(prenom, nom))}</div>`;
 }
 
+// message en haut de page ; un succès disparaît tout seul après 5 s
 function afficherAlerte(message, type = 'success') {
   const alerte = $('#alerte-gestion');
   alerte.className = `alert alert-${type}`;
@@ -53,11 +67,13 @@ function afficherAlerte(message, type = 'success') {
   if (type === 'success') minuterieAlerte = setTimeout(() => alerte.classList.add('d-none'), 5000);
 }
 
+// 401 = session finie, retour à la connexion ; sinon on affiche le message en rouge
 function gererErreur(err) {
   if (err.status === 401) { window.location.href = 'auth.html'; return; }
   afficherAlerte(err.message || 'Une erreur est survenue.', 'danger');
 }
 
+// lien vers le formulaire, ex : formulaire.html?type=patients&id=4 pour modifier le patient 4
 function lienFormulaire(type, id) {
   if (!PAGE_FORMULAIRES) return '';
   const params = new URLSearchParams({ type });
@@ -67,6 +83,9 @@ function lienFormulaire(type, id) {
 
 /* ---------- Boutons d'action ---------- */
 
+// Boutons d'une carte ou d'une ligne, selon l'onglet et les droits du rôle.
+// Les infos utiles (id, onglet, nom) sont stockées dans des attributs data-*
+// et lues au clic par l'écouteur sur #resultats plus bas.
 function boutons(onglet, ligne, libelle) {
   const type = ONGLETS[onglet].type;
   const donnees = `data-id="${ligne.id}" data-onglet="${onglet}" data-label="${attr(libelle)}"`;
@@ -89,6 +108,7 @@ function boutons(onglet, ligne, libelle) {
 
 /* ---------- Rendu : cartes ---------- */
 
+// carte d'un médecin (vue cartes)
 function carteMedecin(m) {
   const nom = `Dr ${m.prenom} ${m.nom}`;
   return `
@@ -102,6 +122,7 @@ function carteMedecin(m) {
     </div></div></div>`;
 }
 
+// carte d'un patient (vue cartes)
 function cartePatient(p) {
   const nom = `${p.prenom} ${p.nom}`;
   return `
@@ -118,11 +139,13 @@ function cartePatient(p) {
 
 /* ---------- Rendu : tableaux ---------- */
 
+// enveloppe commune des tableaux : en-têtes + lignes déjà construites
 function tableau(entetes, lignes) {
   return `<div class="card carte-contenu"><div class="table-responsive"><table class="table table-hover table-gestion mb-0">
     <thead><tr>${entetes.map((e) => `<th>${e}</th>`).join('')}</tr></thead><tbody>${lignes}</tbody></table></div></div>`;
 }
 
+// une ligne de tableau par type de données
 const ligneMedecin = (m) => `
   <tr><td>Dr ${echapper(m.prenom)} ${echapper(m.nom)}</td><td>${echapper(m.specialite)}</td>
     <td>${echapper(m.telephone || '–')}</td><td>${echapper(m.email || '–')}</td>
@@ -156,6 +179,7 @@ const ligneRdv = (r) => {
 
 /* ---------- Affichage d'une page de résultats ---------- */
 
+// affiche les résultats reçus de l'API (cartes ou tableau selon l'onglet et la vue) puis la pagination
 function afficher(d, vue) {
   const o = etat.onglet;
   $('#compteur').textContent = `${nombre(d.total)} résultat${d.total > 1 ? 's' : ''}`;
@@ -177,6 +201,7 @@ function afficher(d, vue) {
   afficherPagination(d.page, d.pages);
 }
 
+// boutons Précédent / 1 2 3 4 5 / Suivant, avec au plus 5 numéros autour de la page actuelle
 function afficherPagination(page, pages) {
   if (pages <= 1) { $('#pagination').innerHTML = ''; return; }
   const debut = Math.max(1, Math.min(page - 2, pages - 4));
@@ -191,6 +216,8 @@ function afficherPagination(page, pages) {
 
 /* ---------- Chargement ---------- */
 
+// Construit l'URL avec page, recherche et filtres de l'onglet, appelle l'API et affiche le résultat.
+// Le jeton sert quand plusieurs requêtes partent vite : on n'affiche que la dernière.
 async function charger() {
   const cfg = ONGLETS[etat.onglet];
   const vue = cfg.cartes ? etat.vue : 'tableau';
@@ -211,11 +238,14 @@ async function charger() {
 
 /* ---------- Onglets, filtres, vue ---------- */
 
+// vide la recherche et tous les filtres
 function reinitialiserFiltres() {
   $('#recherche').value = '';
   $$('[data-filtres] [name]').forEach((el) => { el.value = ''; });
 }
 
+// Passe sur un autre onglet : montre ses filtres, met #nom dans l'URL (pour revenir au même onglet),
+// met à jour le bouton Nouveau (caché si le rôle ne peut pas ajouter) puis recharge.
 function changerOnglet(nom, { garderFiltres = false } = {}) {
   etat.onglet = nom;
   etat.page = 1;
@@ -233,6 +263,7 @@ function changerOnglet(nom, { garderFiltres = false } = {}) {
   charger();
 }
 
+// bascule cartes / tableau et colore le bouton actif
 function changerVue(vue) {
   etat.vue = vue;
   etat.page = 1;
@@ -246,8 +277,10 @@ function changerVue(vue) {
 
 /* ---------- Détail et confirmations ---------- */
 
+// une ligne titre / valeur dans la fenêtre de détail
 const ligneInfo = (titre, valeur) => `<dt class="col-sm-4">${titre}</dt><dd class="col-sm-8">${valeur}</dd>`;
 
+// petite liste de rendez-vous dans la fenêtre de détail (message vide s'il n'y en a pas)
 function listeRdv(rdvs, vide) {
   if (!rdvs.length) return `<p class="text-muted">${vide}</p>`;
   return `<ul class="list-group">${rdvs.map((r) => `
@@ -258,6 +291,8 @@ function listeRdv(rdvs, vide) {
     </li>`).join('')}</ul>`;
 }
 
+// Bouton Voir : charge la fiche complète depuis l'API et l'affiche dans la fenêtre de détail.
+// Le contenu change selon le type (médecin, patient ou dossier).
 async function voirDetail(onglet, id) {
   try {
     const d = await api(`${ONGLETS[onglet].url}/${id}`);
@@ -318,6 +353,8 @@ async function voirDetail(onglet, id) {
   }
 }
 
+// Ouvre la fenêtre de confirmation. action = fonction lancée si on clique Confirmer,
+// elle renvoie le message de succès à afficher.
 function confirmer({ titre, message, bouton, classe = 'btn-danger', action }) {
   $('#titre-confirmation').textContent = titre;
   $('#message-confirmation').textContent = message;
@@ -328,6 +365,7 @@ function confirmer({ titre, message, bouton, classe = 'btn-danger', action }) {
   modalConfirmation.show();
 }
 
+// clic sur Confirmer : on ferme la fenêtre, on lance l'action puis on recharge la liste
 $('#btn-confirmer').addEventListener('click', async () => {
   const action = actionConfirmee;
   actionConfirmee = null;
@@ -341,6 +379,8 @@ $('#btn-confirmer').addEventListener('click', async () => {
   charger();
 });
 
+// Que faire quand on clique un bouton : voir le détail, supprimer, ou terminer / annuler un rdv.
+// Les suppressions et changements de statut passent par une confirmation.
 function demanderAction(action, onglet, id, label) {
   if (action === 'voir') return voirDetail(onglet, id);
 
@@ -375,11 +415,14 @@ function demanderAction(action, onglet, id, label) {
 
 /* ---------- Événements ---------- */
 
+// Un seul écouteur pour tous les boutons des résultats (délégation) :
+// closest() retrouve le bouton cliqué même si on clique sur son texte
 $('#resultats').addEventListener('click', (e) => {
   const b = e.target.closest('[data-action]');
   if (b) demanderAction(b.dataset.action, b.dataset.onglet, b.dataset.id, b.dataset.label);
 });
 
+// clic sur un numéro de page : on charge cette page et on remonte en haut
 $('#pagination').addEventListener('click', (e) => {
   const b = e.target.closest('[data-page]');
   if (!b || b.closest('.disabled')) return;
@@ -388,22 +431,26 @@ $('#pagination').addEventListener('click', (e) => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
+// clic sur un onglet
 $('#onglets').addEventListener('click', (e) => {
   const b = e.target.closest('[data-onglet]');
   if (b && b.dataset.onglet !== etat.onglet) changerOnglet(b.dataset.onglet);
 });
 
+// clic sur Cartes ou Tableau
 $('#bascule-vue').addEventListener('click', (e) => {
   const b = e.target.closest('[data-vue]');
   if (b && b.dataset.vue !== etat.vue) changerVue(b.dataset.vue);
 });
 
+// recherche : on attend 300 ms après la dernière touche avant d'appeler l'API
 let delaiRecherche = null;
 $('#recherche').addEventListener('input', () => {
   clearTimeout(delaiRecherche);
   delaiRecherche = setTimeout(() => { etat.page = 1; charger(); }, 300);
 });
 
+// changement d'un filtre : retour page 1 et rechargement
 $$('[data-filtres]').forEach((groupe) => {
   groupe.addEventListener('change', () => { etat.page = 1; charger(); });
 });
@@ -416,6 +463,8 @@ $('#btn-reinitialiser').addEventListener('click', () => {
 
 /* ---------- Démarrage ---------- */
 
+// Au chargement : vérifie la connexion, affiche le menu, cache les onglets interdits au rôle
+// (ex : Dossiers pour la secrétaire), remplit les filtres puis ouvre le bon onglet.
 (async function init() {
   try {
     ({ user } = await api('/api/auth/moi'));
@@ -438,10 +487,12 @@ $('#btn-reinitialiser').addEventListener('click', () => {
   } catch (err) {
     gererErreur(err);
   }
+  // le médecin ne voit que ses rdv, donc le filtre par médecin ne lui sert à rien
   if (user.role === 'medecin') $('#f-medecin').closest('.col-6').classList.add('d-none');
 
   $('#vue-chargement').classList.add('d-none');
   $('#vue-gestion').classList.remove('d-none');
+  // onglet de départ : celui de l'URL (#patients...) s'il est autorisé, sinon le premier autorisé
   const depart = location.hash.slice(1);
   const premierAutorise = Object.keys(ONGLETS).find((onglet) => ressources[ONGLETS[onglet].type]?.includes('read'));
   changerOnglet(ONGLETS[depart] && ressources[ONGLETS[depart].type]?.includes('read') ? depart : premierAutorise);

@@ -1,6 +1,10 @@
+// Tests des droits de chaque rôle définis dans public/js/permissions.js (lancer avec : npm test)
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+// permissions.js est écrit pour le navigateur (il utilise window),
+// donc on crée un faux window avant de l'importer dans Node
 globalThis.window = {};
 await import('../public/js/permissions.js');
 const roles = window.POLITIQUE_ROLES;
