@@ -1,142 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
+<!-- Page 5 : tableau de bord de l'admin. Tous les chiffres sont remplis par js/dashboard.js
+     à partir de la base (les "–" sont juste là en attendant le chargement) -->
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tableau de bord · Gestion hospitalière</title>
-
-  <!-- Bootstrap 5.3 -->
+  <title>Tableau de bord – Gestion hospitalière</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/tableau-de-bord.css">
+  <link rel="icon" href="image/logo.svg" type="image/svg+xml">
+  <link href="css/style.css" rel="stylesheet">
+  <link href="css/dashboard.css" rel="stylesheet">
 </head>
-
 <body>
-<div id="hospital-dashboard">
+  <!-- barre de navigation remplie par js/nav.js -->
+  <div id="nav"></div>
 
-  <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-hospital">
-    <div class="container-fluid px-4 px-lg-5">
-      <a class="navbar-brand me-lg-4" href="accueil.html">Gestion hospitalière</a>
+  <main class="container py-4">
 
-      <button class="navbar-toggler border-light" type="button"
-              data-bs-toggle="collapse" data-bs-target="#mainNavigation"
-              aria-controls="mainNavigation" aria-expanded="false"
-              aria-label="Ouvrir le menu">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+    <div id="vue-chargement" class="text-center text-muted py-5">Chargement…</div>
 
-      <div class="collapse navbar-collapse" id="mainNavigation">
-        <ul class="navbar-nav align-items-lg-center gap-lg-4 ms-lg-auto">
-          <li class="nav-item"><a class="nav-link" href="accueil.html">Accueil</a></li>
-          <li class="nav-item"><a class="nav-link" href="formulaire.html">Formulaires</a></li>
-          <li class="nav-item"><a class="nav-link active" href="dashboard.html" aria-current="page">Tableau de bord</a></li>
-          <li class="nav-item d-flex align-items-center gap-2" id="zone-session"></li>
-        </ul>
-      </div>
+    <!-- affiché si un médecin ou une secrétaire arrive sur cette page -->
+    <div id="acces-refuse" class="d-none">
+      <div class="card carte-dash"><div class="card-body p-4 text-center">
+        <h1 class="h5">Accès réservé aux administrateurs</h1>
+        <p class="text-muted">Votre rôle ne permet pas d'afficher le tableau de bord.</p>
+        <a href="index.html" class="btn btn-principal">Retour à l'accueil</a>
+      </div></div>
     </div>
-  </nav>
 
-  <main class="container dashboard-container">
-    <div class="d-flex justify-content-between align-items-center page-heading mb-4">
-      <h1 class="dashboard-title mb-0">Tableau de bord</h1>
-      <span class="muted-text" id="date-actualisation">Données en cours de chargement…</span>
-    </div>
-    <div id="alerte-dashboard" class="alert alert-danger d-none" role="alert"></div>
-    <div id="chargement-dashboard" class="text-center text-muted py-5" role="status">Chargement du tableau de bord…</div>
-    <div id="contenu-dashboard" class="d-none">
+    <div id="vue-dashboard" class="d-none">
 
-    <!-- Statistiques -->
-    <section id="hd-statistics" class="row g-3 g-lg-4 mb-3 mb-lg-4">
-      <div class="col-6 col-lg-3">
-        <div id="hd-card-patients" class="dashboard-card">
-          <div class="stat-label">Patients</div>
-          <div class="stat-value" id="stat-patients">—</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div id="hd-card-doctors" class="dashboard-card">
-          <div class="stat-label">Médecins</div>
-          <div class="stat-value" id="stat-medecins">—</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div id="hd-card-upcoming" class="dashboard-card">
-          <div class="stat-label">Rendez-vous à venir</div>
-          <div class="stat-value" id="stat-rdv-avenir">—</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div id="hd-card-cancellations" class="dashboard-card">
-          <div class="stat-label">Taux d’annulation</div>
-          <div class="stat-value" id="stat-annulations">—</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Graphiques -->
-    <section id="hd-charts" class="row g-3 g-lg-4 mb-3 mb-lg-4">
-      <div class="col-lg-7">
-        <div class="dashboard-card">
-          <h2 class="section-title">Consultations par mois</h2>
-          <div id="hd-monthly-chart" class="chart" role="img" aria-label="Consultations terminées par mois"></div>
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h3 mb-0">Tableau de bord</h1>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">Actualisé à <span id="maj-heure">–</span> · automatique toutes les 30 s</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-actualiser">Actualiser</button>
         </div>
       </div>
 
-      <div class="col-lg-5">
-        <div id="hd-specialty-card" class="dashboard-card">
-          <h2 class="section-title">Rendez-vous par spécialité</h2>
+      <!-- message d'erreur si l'actualisation échoue -->
+      <div id="alerte-dash" class="alert alert-danger d-none" role="alert"></div>
 
-          <div id="hd-specialties"></div>
-        </div>
+      <!-- Indicateurs clés -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-lg-3"><div class="card carte-dash h-100"><div class="card-body">
+          <div class="kpi-etiquette">Patients</div><div class="kpi-valeur" id="kpi-patients">–</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card carte-dash h-100"><div class="card-body">
+          <div class="kpi-etiquette">Médecins</div><div class="kpi-valeur" id="kpi-medecins">–</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card carte-dash h-100"><div class="card-body">
+          <div class="kpi-etiquette">Rendez-vous à venir</div><div class="kpi-valeur" id="kpi-avenir">–</div>
+          <div class="text-muted small"><span id="kpi-aujourdhui">0</span> aujourd'hui</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card carte-dash h-100"><div class="card-body">
+          <div class="kpi-etiquette">Taux d'annulation</div><div class="kpi-valeur" id="kpi-annulation">–</div>
+          <div class="text-muted small">sur <span id="kpi-total">0</span> rendez-vous</div></div></div></div>
       </div>
-    </section>
 
-    <!-- Historique et récapitulatif -->
-    <section id="hd-activity-summary" class="row g-3 g-lg-4">
-      <div class="col-lg-8">
-        <div id="hd-activity-card" class="dashboard-card">
-          <div class="d-flex justify-content-between align-items-center activity-heading gap-3 mb-2">
-            <h2 class="section-title mb-0">Historique des activités</h2>
-            <select class="form-select activity-filter" id="filtre-activites" aria-label="Filtrer les activités">
-              <option value="">Toutes les actions</option>
-              <option value="creation">Création</option>
-              <option value="modification">Modification</option>
-              <option value="connexion">Connexion</option>
-              <option value="suppression">Suppression</option>
-            </select>
+      <!-- Graphiques : Chart.js dessine dans les balises canvas -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-7"><div class="card carte-dash h-100"><div class="card-body">
+          <h2 class="h5 mb-3">Consultations par mois</h2>
+          <div class="zone-graphique"><canvas id="graph-mois" aria-label="Consultations terminées par mois"></canvas></div>
+        </div></div></div>
+        <div class="col-lg-5"><div class="card carte-dash h-100"><div class="card-body">
+          <h2 class="h5 mb-3">Rendez-vous par spécialité</h2>
+          <div class="zone-graphique"><canvas id="graph-specialite" aria-label="Rendez-vous par spécialité"></canvas></div>
+        </div></div></div>
+      </div>
+
+      <!-- Historique + récapitulatif par statut -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-8"><div class="card carte-dash h-100"><div class="card-body">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 class="h5 mb-0">Historique des activités</h2>
+            <div class="d-flex gap-2">
+              <input type="search" class="form-control form-control-sm" id="filtre-recherche" placeholder="Rechercher…" aria-label="Rechercher dans l'historique">
+              <select class="form-select form-select-sm" id="filtre-action" aria-label="Filtrer par action">
+                <option value="">Toutes les actions</option>
+                <option value="connexion">Connexion</option>
+                <option value="creation">Création</option>
+                <option value="modification">Modification</option>
+                <option value="suppression">Suppression</option>
+              </select>
+            </div>
           </div>
-
           <div class="table-responsive">
-            <table id="hd-activity-table" class="table">
-              <tbody id="hd-activity-body"></tbody>
+            <table class="table table-dash mb-0">
+              <thead><tr><th>Activité</th><th>Par</th><th>Action</th><th>Quand</th></tr></thead>
+              <tbody id="corps-activites"></tbody>
             </table>
           </div>
-        </div>
+        </div></div></div>
+
+        <div class="col-lg-4"><div class="card carte-dash h-100"><div class="card-body">
+          <h2 class="h5 mb-3">Récapitulatif par statut</h2>
+          <table class="table table-dash mb-0">
+            <thead><tr><th>Statut</th><th class="text-end">Nombre</th></tr></thead>
+            <tbody id="corps-statuts"></tbody>
+          </table>
+        </div></div></div>
       </div>
 
-      <div class="col-lg-4">
-        <div id="hd-status-card" class="dashboard-card">
-          <h2 class="section-title mb-2">Récapitulatif par statut</h2>
-          <div class="table-responsive">
-            <table id="hd-status-table" class="table">
-              <thead>
-                <tr><th>Statut</th><th>Nombre</th></tr>
-              </thead>
-              <tbody id="hd-status-body"></tbody>
-            </table>
-          </div>
+      <!-- Récapitulatif par médecin -->
+      <div class="card carte-dash mb-3"><div class="card-body">
+        <h2 class="h5 mb-3">Récapitulatif par médecin</h2>
+        <div class="table-responsive">
+          <table class="table table-dash table-hover mb-0">
+            <thead><tr><th>Médecin</th><th>Spécialité</th><th class="text-end">Planifiés</th><th class="text-end">Terminés</th><th class="text-end">Annulés</th><th class="text-end">Total</th></tr></thead>
+            <tbody id="corps-medecins"></tbody>
+          </table>
         </div>
-      </div>
-    </section>
+      </div></div>
+
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js pour les graphiques -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/session.js"></script>
+  <script src="js/permissions.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/dashboard.js"></script>
-
-</div>
 </body>
 </html>

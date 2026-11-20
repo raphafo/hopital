@@ -1,10 +1,19 @@
 // Gestion des éléments communs de la page d'accueil.
-chargerSession();
-// Récupère les liens du menu et les sections correspondantes.
-const liens = document.querySelectorAll('.navbar-hopital .nav-link[href^="#"]');
-const sections = document.querySelectorAll('#accueil, #services, #presentation, #contact');
-// Met à jour le lien actif selon la section visible à l’écran.
-if ('IntersectionObserver' in window) {
+// Un visiteur voit les ancres de la page ; un utilisateur connecté voit le menu de son rôle.
+const ANCRES_ACCUEIL = [
+  { id: 'accueil', href: '#accueil', libelle: 'Accueil' },
+  { id: 'services', href: '#services', libelle: 'Services' },
+  { id: 'presentation', href: '#presentation', libelle: 'Présentation' },
+  { id: 'contact', href: '#contact', libelle: 'Contact' },
+];
+
+(async function init() {
+  await chargerSession({ actif: 'accueil', liensVisiteur: ANCRES_ACCUEIL });
+
+  // Surligne l'ancre de la section visible (uniquement pour le menu visiteur).
+  const liens = document.querySelectorAll('.navbar-hopital .nav-link[href^="#"]');
+  const sections = document.querySelectorAll('#accueil, #services, #presentation, #contact');
+  if (!liens.length || !('IntersectionObserver' in window)) return;
   const observateur = new IntersectionObserver((entrees) => {
     entrees.forEach((entree) => {
       if (!entree.isIntersecting) return;
@@ -17,4 +26,4 @@ if ('IntersectionObserver' in window) {
     });
   }, { rootMargin: '-35% 0px -55% 0px' });
   sections.forEach((section) => observateur.observe(section));
-}
+})();

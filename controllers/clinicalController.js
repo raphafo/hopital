@@ -1,20 +1,31 @@
+// Contrôleur générique pour patients, médecins, rendez-vous et dossiers.
+// Il fait la validation des formulaires puis l'ajout / la modification / la suppression.
+// creerHandlers(type) en bas du fichier renvoie les fonctions utilisées dans routes/clinical.js
+
 import * as Clinical from '../models/clinicalModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
+import { query } from '../config/db.js';
 
+// règles de validation (les mêmes que dans les pages, mais on revérifie côté serveur)
 const RE_NOM = /^[\p{L}][\p{L} '\-]{1,79}$/u;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const RE_TELEPHONE = /^5\d{3} ?\d{4}$/;
+const RE_TELEPHONE = /^5\d{3} ?\d{4}$/; // numéro mobile mauricien : 5xxx xxxx
 const GROUPES_SANGUINS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const SPECIALITES = ['Médecine générale', 'Cardiologie', 'Pédiatrie', 'Orthopédie', 'Dermatologie'];
 const STATUTS_RDV = ['planifie', 'termine', 'annule'];
-const TAILLE_MAX_FICHIER = 2 * 1024 * 1024;
+const TAILLE_MAX_FICHIER = 2 * 1024 * 1024; // 2 Mo
+// le PDF arrive encodé en base64 dans le JSON, on vérifie le format
 const RE_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+// nom utilisé dans la table activites pour chaque type
 const TYPE_ACTIVITE = { patients: 'patient', medecins: 'medecin', rdv: 'rendez_vous', dossiers: 'dossier' };
 
+// s'assure que le corps de la requête est bien un objet (sinon on travaille sur {})
 function objet(body) {
   return body && typeof body === 'object' && !Array.isArray(body) ? body : {};
 }
 
+// Lit un champ texte du formulaire. Ajoute un message dans erreurs si le champ est
+// obligatoire et vide, ou trop long. Renvoie le texte nettoyé ou null.
 function texte(body, nom, erreurs, { obligatoire = false, maximum = Infinity } = {}) {
   const valeur = body[nom];
   if (valeur == null || valeur === '') {
@@ -31,17 +42,20 @@ function texte(body, nom, erreurs, { obligatoire = false, maximum = Infinity } =
   return resultat || null;
 }
 
+// transforme "12" ou 12 en nombre entier > 0, sinon null (sert pour les id)
 function entierPositif(value) {
   const nombre = typeof value === 'string' && value.trim() ? Number(value) : value;
   return Number.isInteger(nombre) && nombre > 0 ? nombre : null;
 }
 
+// vérifie une date AAAA-MM-JJ qui existe vraiment (refuse par exemple le 31 février)
 function dateValide(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
+// petites fonctions réutilisées par les patients et les médecins
 function validerIdentite(body, erreurs) {
   const prenom = texte(body, 'prenom', erreurs, { obligatoire: true, maximum: 80 });
   const nom = texte(body, 'nom', erreurs, { obligatoire: true, maximum: 80 });
@@ -62,6 +76,10 @@ function validerEmail(body, erreurs) {
   return email?.toLowerCase() ?? null;
 }
 
+// Chaque validerXxx renvoie { erreurs, values } :
+// erreurs = messages par champ (vide si tout est bon), values = données prêtes pour la base
+
+// patient : nom, prénom, date de naissance (pas dans le futur) et sexe obligatoires
 function validerPatient(body) {
   const erreurs = {};
   const { nom, prenom } = validerIdentite(body, erreurs);
@@ -84,6 +102,7 @@ function validerPatient(body) {
   };
 }
 
+// médecin : la spécialité doit faire partie de la liste SPECIALITES
 function validerMedecin(body) {
   const erreurs = {};
   const { nom, prenom } = validerIdentite(body, erreurs);
@@ -99,6 +118,7 @@ function validerMedecin(body) {
   };
 }
 
+// rendez-vous : patient, médecin, date, heure (HH:MM), motif et statut
 function validerRendezVous(body) {
   const erreurs = {};
   const patient_id = entierPositif(body.patient_id);
@@ -117,6 +137,7 @@ function validerRendezVous(body) {
   return { erreurs, values: { patient_id, medecin_id, date_rdv, heure_rdv, motif, statut } };
 }
 
+// dossier : patient et diagnostic obligatoires, médecin / rendez-vous / PDF optionnels
 function validerDossier(body) {
   const erreurs = {};
   const patient_id = entierPositif(body.patient_id);
@@ -130,6 +151,8 @@ function validerDossier(body) {
   const notes = texte(body, 'notes', erreurs);
   const values = { patient_id, medecin_id, rendez_vous_id, diagnostic, traitement, notes };
 
+  // on ne contrôle le fichier que s'il a été envoyé
+  // (en modification sans nouveau fichier, l'ancien PDF est gardé)
   const champsFichier = ['fichier_nom', 'fichier_type', 'fichier_data'];
   if (champsFichier.some((champ) => Object.hasOwn(body, champ))) {
     const fichier_nom = texte(body, 'fichier_nom', erreurs, { obligatoire: true, maximum: 255 });
@@ -139,6 +162,7 @@ function validerDossier(body) {
     if (typeof fichier_data !== 'string' || !RE_BASE64.test(fichier_data)) {
       erreurs.fichier = 'Fichier PDF invalide.';
     } else {
+      // on décode le base64 puis on vérifie la taille et que le fichier commence bien par %PDF-
       const contenu = Buffer.from(fichier_data, 'base64');
       if (contenu.length > TAILLE_MAX_FICHIER) erreurs.fichier = 'Le fichier dépasse 2 Mo.';
       else if (contenu.subarray(0, 1024).indexOf('%PDF-') === -1) erreurs.fichier = 'Le fichier envoyé n’est pas un PDF valide.';
@@ -150,6 +174,7 @@ function validerDossier(body) {
   return { erreurs, values };
 }
 
+// quel validateur utiliser selon le type
 const VALIDATEURS = {
   patients: validerPatient,
   medecins: validerMedecin,
@@ -157,6 +182,7 @@ const VALIDATEURS = {
   dossiers: validerDossier,
 };
 
+// lit l'id de l'URL, répond 400 et renvoie null s'il n'est pas valide
 function validerId(req, res) {
   const id = entierPositif(req.params.id);
   if (!id) {
@@ -166,6 +192,9 @@ function validerId(req, res) {
   return id;
 }
 
+// Transforme les erreurs PostgreSQL en messages compréhensibles :
+// 23505 = doublon (ex : créneau déjà pris), 23503 = lien vers un élément qui n'existe pas
+// ou qui est encore utilisé, 23514 / 22P02 = valeur refusée par une contrainte de la base
 function gererErreurBase(err, res, next) {
   if (err.code === '23505') {
     const champs = err.constraint === 'uq_rdv_creneau'
@@ -185,6 +214,7 @@ function gererErreurBase(err, res, next) {
   next(err);
 }
 
+// texte de l'historique, ex : "Patient créé : Jean Henry"
 function description(type, action, values, id) {
   const nom = values?.prenom && values?.nom ? `${values.prenom} ${values.nom}` : `n° ${id}`;
   const verbe = { creation: 'créé', modification: 'modifié', suppression: 'supprimé' }[action];
@@ -192,11 +222,33 @@ function description(type, action, values, id) {
   return `${sujet} ${verbe} : ${nom}`;
 }
 
+// Si un dossier est lié à un rendez-vous, ce rendez-vous doit être avec le même patient
+// et le même médecin. Renvoie un message d'erreur ou null si c'est bon.
+async function verifierRendezVousDossier(values) {
+  if (!values.rendez_vous_id) return null;
+  const { rows } = await query(
+    'SELECT patient_id, medecin_id FROM rendez_vous WHERE id = $1',
+    [values.rendez_vous_id]
+  );
+  const rendezVous = rows[0];
+  if (!rendezVous) return 'Rendez-vous introuvable.';
+  if (rendezVous.patient_id !== values.patient_id) {
+    return 'Le rendez-vous doit concerner le patient sélectionné.';
+  }
+  if (rendezVous.medecin_id !== values.medecin_id) {
+    return 'Le rendez-vous doit être attribué au médecin sélectionné.';
+  }
+  return null;
+}
+
+// Renvoie les 4 fonctions CRUD pour un type ('patients', 'medecins', 'rdv' ou 'dossiers').
+// Chaque action réussie est enregistrée dans l'historique (table activites).
 export function creerHandlers(type) {
   const valider = VALIDATEURS[type];
   if (!valider) throw new Error(`Validateur inconnu : ${type}`);
 
   return {
+    // GET : liste complète (utilisée seulement si la route n'a pas son propre lister)
     lister: async (req, res, next) => {
       try {
         res.json({ [type]: await Clinical.lister(type) });
@@ -204,14 +256,20 @@ export function creerHandlers(type) {
         next(err);
       }
     },
+    // POST : validation, puis insertion en base
     creer: async (req, res, next) => {
       const { values, erreurs } = valider(objet(req.body));
       if (Object.keys(erreurs).length) {
         return res.status(400).json({ erreur: 'Données invalides.', champs: erreurs });
       }
+      // on retient qui a créé le rendez-vous
       if (type === 'rdv') values.created_by = req.user.id;
 
       try {
+        if (type === 'dossiers') {
+          const erreurLien = await verifierRendezVousDossier(values);
+          if (erreurLien) return res.status(400).json({ erreur: 'Données invalides.', champs: { rendez_vous_id: erreurLien } });
+        }
         const record = await Clinical.creer(type, values);
         await enregistrerActivite({
           userId: req.user.id,
@@ -220,11 +278,14 @@ export function creerHandlers(type) {
           entiteId: record.id,
           description: description(type, 'creation', values, record.id),
         });
+        // la clé de la réponse est au singulier : patient, medecin, rendez_vous, dossier
         res.status(201).json({ [type === 'rdv' ? 'rendez_vous' : type.slice(0, -1)]: record });
       } catch (err) {
         gererErreurBase(err, res, next);
       }
     },
+    // PUT : même validation que l'ajout, puis mise à jour
+    // req.medecinId est rempli par verifierModificationMedecin pour qu'un médecin ne modifie que ses dossiers
     modifier: async (req, res, next) => {
       const id = validerId(req, res);
       if (!id) return;
@@ -234,7 +295,11 @@ export function creerHandlers(type) {
       }
 
       try {
-        const record = await Clinical.modifier(type, id, values);
+        if (type === 'dossiers') {
+          const erreurLien = await verifierRendezVousDossier(values);
+          if (erreurLien) return res.status(400).json({ erreur: 'Données invalides.', champs: { rendez_vous_id: erreurLien } });
+        }
+        const record = await Clinical.modifier(type, id, values, { medecinId: req.medecinId });
         if (!record) return res.status(404).json({ erreur: 'Enregistrement introuvable.' });
         await enregistrerActivite({
           userId: req.user.id,
@@ -248,12 +313,13 @@ export function creerHandlers(type) {
         gererErreurBase(err, res, next);
       }
     },
+    // DELETE : répond 204 (succès sans contenu)
     supprimer: async (req, res, next) => {
       const id = validerId(req, res);
       if (!id) return;
 
       try {
-        const record = await Clinical.supprimer(type, id);
+        const record = await Clinical.supprimer(type, id, { medecinId: req.medecinId });
         if (!record) return res.status(404).json({ erreur: 'Enregistrement introuvable.' });
         await enregistrerActivite({
           userId: req.user.id,

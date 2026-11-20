@@ -6,6 +6,7 @@
 -- sont créés par un script Node (mots de passe hachés).
 -- =====================================================
 
+-- Médecins (le Dr Ramgoolam est relié au compte médecin par create-users.js grâce à son email)
 INSERT INTO medecins (nom, prenom, specialite, telephone, email, disponible) VALUES
 ('Ramgoolam', 'Anil',    'Médecine générale', '5250 1101', 'anil.ramgoolam@hopital.mu',  TRUE),
 ('Dupont',    'Sophie',  'Cardiologie',       '5250 1102', 'sophie.dupont@hopital.mu',   TRUE),
@@ -13,6 +14,7 @@ INSERT INTO medecins (nom, prenom, specialite, telephone, email, disponible) VAL
 ('Bundhun',   'Rajesh',  'Orthopédie',        '5250 1104', 'rajesh.bundhun@hopital.mu',  TRUE),
 ('Pillay',    'Nadia',   'Dermatologie',      '5250 1105', 'nadia.pillay@hopital.mu',    FALSE);
 
+-- Patients (les id vont de 1 à 12 dans l'ordre d'insertion, utilisés juste en dessous)
 INSERT INTO patients (nom, prenom, date_naissance, sexe, telephone, email, adresse, groupe_sanguin, allergies, assure) VALUES
 ('Soobramanien', 'Kevin',   '1985-03-14', 'M', '5701 2201', 'kevin.s@mail.mu',   'Rose Hill',        'O+',  NULL,                 TRUE),
 ('Joomun',       'Priya',   '1990-07-22', 'F', '5701 2202', 'priya.j@mail.mu',   'Beau Bassin',      'A+',  'Pénicilline',        TRUE),

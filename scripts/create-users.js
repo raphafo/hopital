@@ -10,6 +10,9 @@ const comptes = [
   { nom: 'Secretaire', prenom: 'Accueil', email: 'secretaire@hopital.mu',     role: 'secretaire', mdp: 'Secret123!' },
 ];
 
+// Pour chaque compte : on hache le mot de passe puis on l'insère.
+// ON CONFLICT : si l'email existe déjà, on met juste à jour le mot de passe et le rôle,
+// donc on peut relancer le script sans erreur.
 try {
   for (const c of comptes) {
     const hash = await bcrypt.hash(c.mdp, 10);
@@ -20,6 +23,8 @@ try {
        RETURNING id`,
       [c.nom, c.prenom, c.email, hash, c.role]
     );
+    // le compte médecin est relié à sa fiche dans la table medecins (même email)
+    // c'est ce lien qui permet de limiter un médecin à ses propres rdv et dossiers
     if (c.role === 'medecin') {
       await pool.query('UPDATE medecins SET user_id = $1 WHERE email = $2', [rows[0].id, c.email]);
     }
