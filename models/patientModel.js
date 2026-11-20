@@ -1,5 +1,12 @@
+// Requêtes SQL sur les patients (liste avec filtres, fiche détaillée, suppression)
+
 import { pool, query } from '../config/db.js';
 
+// Liste des patients avec recherche, filtres et pagination.
+// resultats = tous les patients qui correspondent, page = juste ceux de la page demandée.
+// On renvoie aussi le total pour savoir combien de pages afficher.
+// Le LEFT JOIN avec total permet d'avoir le total même quand la page est vide.
+// Si limite est null, LIMIT prend tout (pas de pagination).
 export async function lister({ q, sexe, groupe, assure, limite, offset }) {
   const { rows } = await query(`
     WITH resultats AS (
@@ -27,14 +34,17 @@ export async function lister({ q, sexe, groupe, assure, limite, offset }) {
      ORDER BY page.nom, page.prenom
   `, [echapperRecherche(q), sexe, groupe, assure, limite, offset]);
   const total = rows[0]?.total_count ?? 0;
+  // on enlève la ligne vide (page vide) et la colonne total_count de chaque patient
   return {
     items: rows.filter((row) => row.id != null).map(({ total_count, ...patient }) => patient),
     total,
   };
 }
 
+// échappe % et _ pour qu'une recherche comme "50%" cherche vraiment le caractère %
 const echapperRecherche = (q) => q?.replace(/[\\%_]/g, '\\$&') ?? null;
 
+// Fiche d'un patient : ses infos, son âge, son nombre de dossiers et ses 5 derniers rendez-vous
 export async function trouver(id) {
   const { rows } = await query(`
     SELECT p.id, p.nom, p.prenom, to_char(p.date_naissance, 'YYYY-MM-DD') AS date_naissance,
@@ -56,7 +66,13 @@ export async function trouver(id) {
   return { ...rows[0], derniers_rdv: rdv.rows };
 }
 
+// Supprime un patient dans une transaction (BEGIN ... COMMIT).
+// Avec protegerDossiers (cas de la secrétaire), on annule si le patient a un dossier médical.
+// FOR UPDATE bloque la ligne pendant la vérification, pour qu'un dossier ne soit pas
+// ajouté entre le contrôle et la suppression.
+// Renvoie null si introuvable, { protege: true } si refusé, sinon le patient supprimé.
 export async function supprimer(id, { protegerDossiers = false } = {}) {
+  // pour une transaction il faut garder la même connexion du début à la fin
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -87,6 +103,7 @@ export async function supprimer(id, { protegerDossiers = false } = {}) {
     await client.query('COMMIT');
     return suppression.rows[0] || null;
   } catch (err) {
+    // en cas d'erreur on annule tout
     try {
       await client.query('ROLLBACK');
     } catch (rollbackError) {
@@ -94,6 +111,7 @@ export async function supprimer(id, { protegerDossiers = false } = {}) {
     }
     throw err;
   } finally {
+    // on rend la connexion au pool dans tous les cas
     client.release();
   }
 }

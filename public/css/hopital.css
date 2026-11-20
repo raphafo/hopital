@@ -112,53 +112,7 @@ img {
    4. NAVIGATION
 ===================================== */
 
-.navbar-hopital {
-
-    background: var(--couleur-principale);
-
-    padding: 15px 0;
-
-    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-
-}
-
-.navbar-hopital .navbar-brand {
-
-    color: white;
-
-    font-size: 1.25rem;
-
-}
-
-.navbar-hopital .nav-link {
-
-    color: white;
-
-    font-weight: 500;
-
-    padding: 8px 14px;
-
-    transition: 0.3s;
-
-}
-
-.navbar-hopital .nav-link:hover {
-
-    color: #d7f2ef;
-
-}
-
-.navbar-hopital .nav-link.active {
-
-    border-bottom: 2px solid white;
-
-}
-
-.navbar-hopital .navbar-toggler {
-
-    border-color: rgba(255, 255, 255, 0.6);
-
-}
+/* Styles de la barre : voir style.css (commune à toutes les pages). */
 
 
 /* =====================================
@@ -732,21 +686,6 @@ img {
     color: #9b2226;
 
 }
-
-.pastille-session {
-
-    background: rgba(255, 255, 255, 0.2);
-
-    color: white;
-
-    padding: 0.3rem 0.9rem;
-
-    border-radius: 999px;
-
-    font-size: 0.85rem;
-
-}
-
 
 /* =====================================
    14. RESPONSIVE DESIGN

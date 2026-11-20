@@ -1,5 +1,9 @@
+// Requêtes SQL du tableau de bord (utilisées par statsController.js)
+
 import { query } from '../config/db.js';
 
+// Les chiffres des cartes KPI en une seule requête.
+// NULLIF évite une division par zéro quand il n'y a aucun rendez-vous.
 export async function kpi() {
   const { rows } = await query(`
     SELECT
@@ -15,6 +19,7 @@ export async function kpi() {
 }
 
 // Consultations terminées sur les 6 derniers mois, mois sans consultation inclus (valeur 0)
+// generate_series crée la liste des 6 mois, puis on y colle les comptages
 export async function consultationsParMois() {
   const { rows } = await query(`
     SELECT to_char(serie.mois, 'YYYY-MM') AS mois, COALESCE(c.nb, 0)::int AS nb
@@ -27,6 +32,8 @@ export async function consultationsParMois() {
   return rows;
 }
 
+// Nombre de rendez-vous (hors annulés) par spécialité, pour le graphique en barres horizontales.
+// LEFT JOIN pour garder aussi les spécialités à 0
 export async function parSpecialite() {
   const { rows } = await query(`
     SELECT m.specialite, COUNT(r.id)::int AS nb
@@ -38,6 +45,7 @@ export async function parSpecialite() {
   return rows;
 }
 
+// Nombre de rendez-vous par statut. La liste VALUES force les 3 statuts à apparaître, même à 0.
 export async function parStatut() {
   const { rows } = await query(`
     SELECT s.statut, COALESCE(c.nb, 0)::int AS nb
@@ -47,6 +55,7 @@ export async function parStatut() {
   return rows;
 }
 
+// Tableau récapitulatif par médecin : planifiés, terminés, annulés et total
 export async function parMedecin() {
   const { rows } = await query(`
     SELECT m.id, m.prenom, m.nom, m.specialite,
@@ -62,6 +71,9 @@ export async function parMedecin() {
   return rows;
 }
 
+// Les 20 dernières activités, avec le nom de l'utilisateur qui a fait l'action.
+// Filtre optionnel par action et recherche dans la description (ILIKE = sans tenir compte des majuscules).
+// On échappe % et _ pour qu'ils soient cherchés comme du texte normal.
 export async function activites({ action = null, q = null, limite = 20 }) {
   const motif = q ? q.replace(/[\\%_]/g, '\\$&') : null;
   const { rows } = await query(`

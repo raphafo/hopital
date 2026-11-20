@@ -1,3 +1,6 @@
+// Tests des fonctions de utils/filtres.js (lancer avec : npm test)
+// assert.deepEqual compare deux objets, assert.throws vérifie qu'une erreur est bien levée
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { idValide, lireFiltres, lirePagination, lireRecherche, reponsePage } from '../utils/filtres.js';

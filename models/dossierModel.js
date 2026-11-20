@@ -1,9 +1,15 @@
+// Requêtes SQL sur les dossiers médicaux.
+// medecinId : quand il est donné, on ne voit que les dossiers de ce médecin.
+
 import { query } from '../config/db.js';
 
+// échappe % et _ dans la recherche
 function echapperRecherche(q) {
   return q?.replace(/[\\%_]/g, '\\$&') ?? null;
 }
 
+// Liste des dossiers avec recherche (patient, médecin, diagnostic, traitement, notes) et pagination.
+// On ne charge pas le PDF, juste fichier_present (vrai/faux) pour savoir s'il y en a un.
 export async function lister({ q, medecinId, limite, offset }) {
   const { rows } = await query(`
     WITH resultats AS (
@@ -45,6 +51,7 @@ export async function lister({ q, medecinId, limite, offset }) {
   };
 }
 
+// un dossier (sans le contenu du PDF)
 export async function trouver(id, medecinId = null) {
   const { rows } = await query(`
     SELECT d.id, d.patient_id, d.medecin_id, d.rendez_vous_id,
@@ -61,6 +68,7 @@ export async function trouver(id, medecinId = null) {
   return rows[0] || null;
 }
 
+// le PDF d'un dossier (nom, type et contenu), pour le téléchargement
 export async function fichier(id, medecinId = null) {
   const { rows } = await query(`
     SELECT fichier_nom, fichier_type, fichier_data

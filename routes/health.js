@@ -1,3 +1,5 @@
+// Routes /api/health pour tester rapidement si le site marche (utile après un déploiement)
+
 import { Router } from 'express';
 import { query } from '../config/db.js';
 

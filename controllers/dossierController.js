@@ -1,12 +1,18 @@
+// Routes spécifiques aux dossiers médicaux : liste, détail, PDF joint,
+// et la vérification qu'un médecin ne touche qu'à ses propres dossiers.
+
 import * as Dossiers from '../models/dossierModel.js';
 import * as Medecins from '../models/medecinModel.js';
 import { lirePagination, lireRecherche, reponsePage, idValide } from '../utils/filtres.js';
 
+// pour un médecin : renvoie l'id de sa fiche médecin (ou -1 s'il n'en a pas, donc aucun résultat)
+// pour l'admin : null = pas de restriction
 async function medecinImpose(req) {
   if (req.user.role !== 'medecin') return null;
   return (await Medecins.idParUtilisateur(req.user.id)) ?? -1;
 }
 
+// GET /api/dossiers?q=...&page=...
 export async function lister(req, res, next) {
   try {
     const paginationActive = req.query.page != null || req.query.limite != null;
@@ -25,6 +31,7 @@ export async function lister(req, res, next) {
   }
 }
 
+// GET /api/dossiers/:id
 export async function detail(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -38,6 +45,9 @@ export async function detail(req, res, next) {
   }
 }
 
+// Prépare le nom du fichier pour l'en-tête Content-Disposition.
+// On enlève les caractères dangereux (/, \, retours à la ligne) et on donne
+// une version ASCII + une version UTF-8 pour garder les accents.
 function nomFichier(fichierNom, id) {
   const original = String(fichierNom || `dossier-${id}.pdf`).replace(/[\/\\\r\n]/g, '_');
   const fallback = original.replace(/[^\x20-\x7E]/g, '_').replace(/[^A-Za-z0-9._ -]/g, '_') || `dossier-${id}.pdf`;
@@ -46,6 +56,8 @@ function nomFichier(fichierNom, id) {
   return `filename="${fallback}"; filename*=UTF-8''${encodeRfc5987(original)}`;
 }
 
+// GET /api/dossiers/:id/fichier : envoie le PDF stocké en base
+// ?telecharger=1 pour le télécharger, sinon il s'ouvre dans le navigateur
 export async function fichier(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -56,6 +68,7 @@ export async function fichier(req, res, next) {
     }
 
     const disposition = req.query.telecharger === '1' ? 'attachment' : 'inline';
+    // pas de cache (données médicales) et nosniff pour que le navigateur le traite bien comme un PDF
     res.set({
       'Cache-Control': 'private, no-store',
       'Content-Disposition': `${disposition}; ${nomFichier(fichier.fichier_nom, id)}`,
@@ -68,13 +81,18 @@ export async function fichier(req, res, next) {
   }
 }
 
+// Middleware lancé avant chaque ajout / modif / suppression de dossier.
+// L'admin passe directement. Pour un médecin :
+// - il doit avoir une fiche médecin liée à son compte
+// - en PUT/DELETE, le dossier doit être à lui
+// - en POST/PUT, il ne peut pas mettre un autre médecin ; s'il n'en met pas, on met le sien
 export async function verifierModificationMedecin(req, res, next) {
   if (req.user.role !== 'medecin') return next();
 
   try {
     const medecinId = await Medecins.idParUtilisateur(req.user.id);
     if (!medecinId) return res.status(403).json({ erreur: 'Aucun profil médecin n’est lié à ce compte.' });
-    req.medecinId = medecinId;
+    req.medecinId = medecinId; // récupéré ensuite par clinicalController
 
     if (req.method === 'PUT' || req.method === 'DELETE') {
       const id = Number(req.params.id);

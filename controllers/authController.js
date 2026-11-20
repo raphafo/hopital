@@ -1,3 +1,5 @@
+// Inscription, connexion, déconnexion et "qui suis-je" (routes /api/auth)
+
 import bcrypt from 'bcryptjs';
 import * as Users from '../models/userModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
@@ -8,8 +10,12 @@ import { validerInscription, validerConnexion } from '../middleware/validate.js'
 // le temps de réponse ne révèle alors pas si le compte existe.
 const HASH_FACTICE = bcrypt.hashSync('mot-de-passe-factice', 10);
 
+// ce qu'on renvoie au navigateur : jamais le hash du mot de passe
 const publique = (u) => ({ id: u.id, nom: u.nom, prenom: u.prenom, email: u.email, role: u.role });
 
+// POST /api/auth/register
+// valide les champs, vérifie que l'email est libre, hache le mot de passe,
+// crée le compte puis connecte directement l'utilisateur
 export async function inscription(req, res, next) {
   try {
     const { valeurs, champs } = validerInscription(req.body);
@@ -20,10 +26,12 @@ export async function inscription(req, res, next) {
       return res.status(409).json({ erreur: 'Données invalides', champs: { email: 'Cet email est déjà utilisé.' } });
     }
 
+    // bcrypt transforme le mot de passe en hash, on ne stocke jamais le mot de passe en clair
     const hash = await bcrypt.hash(valeurs.mot_de_passe, 10);
     // Le rôle n'est jamais lu dans la requête : tout nouveau compte est « secretaire ».
     const user = await Users.creer({ nom: valeurs.nom, prenom: valeurs.prenom, email: valeurs.email, hash });
 
+    // trace dans l'historique du tableau de bord
     await enregistrerActivite({
       userId: user.id, action: 'creation', entite: 'user', entiteId: user.id,
       description: `Nouveau compte créé : ${user.prenom} ${user.nom}`,
@@ -32,6 +40,7 @@ export async function inscription(req, res, next) {
     poserCookie(res, signerToken(user));
     res.status(201).json({ user: publique(user) });
   } catch (err) {
+    // 23505 = violation d'unicité dans PostgreSQL (deux inscriptions en même temps avec le même email)
     if (err.code === '23505') {
       return res.status(409).json({ erreur: 'Données invalides', champs: { email: 'Cet email est déjà utilisé.' } });
     }
@@ -39,6 +48,8 @@ export async function inscription(req, res, next) {
   }
 }
 
+// POST /api/auth/login
+// vérifie email + mot de passe, refuse les comptes désactivés, puis pose le cookie
 export async function connexion(req, res, next) {
   try {
     const { valeurs, champs } = validerConnexion(req.body);
@@ -49,6 +60,7 @@ export async function connexion(req, res, next) {
     const user = await Users.trouverParEmail(valeurs.email);
     const motDePasseOk = await bcrypt.compare(valeurs.mot_de_passe, user?.mot_de_passe_hash ?? HASH_FACTICE);
 
+    // même message que l'email ou le mot de passe soit faux, pour ne pas aider un attaquant
     if (!user || !motDePasseOk) {
       return res.status(401).json({ erreur: 'Email ou mot de passe incorrect.' });
     }
@@ -68,11 +80,13 @@ export async function connexion(req, res, next) {
   }
 }
 
+// POST /api/auth/logout : on efface juste le cookie
 export function deconnexion(req, res) {
   effacerCookie(res);
   res.json({ message: 'Déconnecté' });
 }
 
+// GET /api/auth/moi
 // Renvoie l'utilisateur connecté, relu en base (le rôle ou l'état du compte ont pu changer).
 export async function moi(req, res, next) {
   try {

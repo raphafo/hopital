@@ -3,6 +3,7 @@
 -- Exécuter ce fichier en premier, puis seed.sql
 -- =====================================================
 
+-- On supprime tout avant de recréer (CASCADE supprime aussi ce qui en dépend)
 DROP VIEW  IF EXISTS v_consultations_par_mois CASCADE;
 DROP VIEW  IF EXISTS v_rdv_par_specialite CASCADE;
 DROP TABLE IF EXISTS activites    CASCADE;
@@ -32,6 +33,7 @@ CREATE TABLE users (
 -- -----------------------------------------------------
 CREATE TABLE medecins (
     id           SERIAL PRIMARY KEY,
+    -- lien vers le compte de connexion du médecin (peut être vide)
     user_id      INTEGER UNIQUE REFERENCES users(id) ON DELETE SET NULL,
     nom          VARCHAR(80)  NOT NULL,
     prenom       VARCHAR(80)  NOT NULL,
@@ -67,6 +69,8 @@ CREATE TABLE patients (
 -- -----------------------------------------------------
 CREATE TABLE rendez_vous (
     id          SERIAL PRIMARY KEY,
+    -- supprimer un patient supprime ses rendez-vous ;
+    -- un médecin qui a des rendez-vous ne peut pas être supprimé (RESTRICT)
     patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     medecin_id  INTEGER NOT NULL REFERENCES medecins(id) ON DELETE RESTRICT,
     date_rdv    DATE    NOT NULL,
@@ -79,6 +83,7 @@ CREATE TABLE rendez_vous (
 );
 
 -- Un médecin ne peut pas avoir deux rendez-vous actifs au même créneau
+-- (index unique partiel : les rendez-vous annulés ne comptent pas)
 CREATE UNIQUE INDEX uq_rdv_creneau
     ON rendez_vous (medecin_id, date_rdv, heure_rdv)
     WHERE statut <> 'annule';
@@ -133,6 +138,7 @@ CREATE INDEX idx_activites_date    ON activites (created_at DESC);
 
 -- -----------------------------------------------------
 -- Vues pour les statistiques du dashboard
+-- (une vue est une requête enregistrée qu'on interroge comme une table)
 -- -----------------------------------------------------
 CREATE VIEW v_consultations_par_mois AS
 SELECT date_trunc('month', date_rdv)::date AS mois,

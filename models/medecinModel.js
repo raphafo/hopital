@@ -1,5 +1,9 @@
+// Requêtes SQL sur les médecins
+
 import { query } from '../config/db.js';
 
+// Liste des médecins avec recherche, filtres et pagination (même principe que patientModel).
+// rdv_a_venir = nombre de rendez-vous planifiés à partir d'aujourd'hui, affiché sur les cartes.
 export async function lister({ q, specialite, disponible, limite, offset }) {
   const { rows } = await query(`
     WITH resultats AS (
@@ -32,8 +36,10 @@ export async function lister({ q, specialite, disponible, limite, offset }) {
   };
 }
 
+// échappe % et _ dans la recherche
 const echapperRecherche = (q) => q?.replace(/[\\%_]/g, '\\$&') ?? null;
 
+// Fiche d'un médecin : infos, compteurs par statut et ses 5 prochains rendez-vous
 export async function trouver(id) {
   const { rows } = await query(`
     SELECT m.id, m.nom, m.prenom, m.specialite, m.telephone, m.email, m.disponible, m.photo_url,
@@ -58,18 +64,21 @@ export async function trouver(id) {
   return { ...rows[0], prochains_rdv: prochains.rows };
 }
 
+// valeurs pour remplir les listes déroulantes de filtres (spécialités et médecins)
 export async function filtres() {
   const specialites = await query('SELECT DISTINCT specialite FROM medecins ORDER BY specialite');
   const medecins = await query('SELECT id, prenom, nom FROM medecins ORDER BY nom, prenom');
   return { specialites: specialites.rows.map((r) => r.specialite), medecins: medecins.rows };
 }
 
+// la base refuse si le médecin a encore des rendez-vous (erreur gérée dans le contrôleur)
 export async function supprimer(id) {
   const { rows } = await query('DELETE FROM medecins WHERE id = $1 RETURNING id, prenom, nom', [id]);
   return rows[0] || null;
 }
 
 // Utilisé pour limiter un médecin connecté à ses propres rendez-vous
+// (fait le lien compte utilisateur -> fiche médecin)
 export async function idParUtilisateur(userId) {
   const { rows } = await query('SELECT id FROM medecins WHERE user_id = $1', [userId]);
   return rows[0]?.id ?? null;

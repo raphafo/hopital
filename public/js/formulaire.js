@@ -315,7 +315,7 @@ $('#liste').addEventListener('click', async (e) => {
 /* ---------- Démarrage ---------- */
 
 (async function init() {
-  const user = await chargerSession({ exiger: true });
+  const user = await chargerSession({ exiger: true, actif: 'formulaire' });
   if (!user) return;
   roleCourant = user.role;
   const droits = window.POLITIQUE_ROLES[user.role]?.resources || {};

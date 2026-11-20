@@ -1,11 +1,17 @@
+// Routes spécifiques aux patients : liste, détail, suppression.
+// L'ajout et la modification passent par le contrôleur générique (clinicalController.js).
+
 import * as Patients from '../models/patientModel.js';
 import { enregistrerActivite } from '../models/activiteModel.js';
 import { lirePagination, lireRecherche, lireFiltres, reponsePage, idValide } from '../utils/filtres.js';
 
 const GROUPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
+// GET /api/patients?q=...&sexe=...&groupe=...&assure=...&page=...
+// sans page/limite on renvoie tout (utile pour remplir les listes déroulantes)
 export async function lister(req, res, next) {
   try {
+    // on accepte seulement les valeurs prévues pour chaque filtre
     const { filtres, erreur } = lireFiltres(req.query, {
       sexe: { enumeration: ['M', 'F'] },
       groupe: { enumeration: GROUPES },
@@ -31,6 +37,7 @@ export async function lister(req, res, next) {
   }
 }
 
+// GET /api/patients/:id : la fiche d'un patient (fenêtre "Voir" de la page gestion)
 export async function detail(req, res, next) {
   try {
     const id = idValide(req.params.id);
@@ -44,6 +51,9 @@ export async function detail(req, res, next) {
   }
 }
 
+// DELETE /api/patients/:id
+// règle métier : une secrétaire ne peut pas supprimer un patient qui a un dossier médical,
+// seul l'admin peut (sinon on perdrait des données médicales)
 export async function supprimer(req, res, next) {
   try {
     const id = idValide(req.params.id);

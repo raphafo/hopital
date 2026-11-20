@@ -1,5 +1,10 @@
+// Historique des actions (table activites), affiché sur le tableau de bord
+
 import { query } from '../config/db.js';
 
+// Ajoute une ligne dans l'historique.
+// action : connexion / creation / modification / suppression
+// entite : user / patient / medecin / rendez_vous / dossier
 // L'historique ne doit jamais faire échouer une action : en cas d'erreur, on journalise seulement.
 export async function enregistrerActivite({ userId = null, action, entite, entiteId = null, description }) {
   try {

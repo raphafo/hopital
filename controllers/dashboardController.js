@@ -1,8 +1,13 @@
+// Première version du tableau de bord (route /api/dashboard).
+// Elle n'est plus appelée par les pages : dashboard.js utilise statsController.js à la place.
+
 import { query } from '../config/db.js';
 
 export async function getDashboard(req, res, next) {
   try {
+    // les 5 requêtes partent en même temps
     const [statistiques, consultations, specialites, activites, statuts] = await Promise.all([
+      // les 4 chiffres clés
       query(`
         SELECT
           (SELECT COUNT(*) FROM patients)::int AS patients,
@@ -15,6 +20,7 @@ export async function getDashboard(req, res, next) {
             0
           )::int AS taux_annulation
       `),
+      // consultations terminées sur les 6 derniers mois (generate_series crée les mois vides aussi)
       query(`
         WITH mois AS (
           SELECT generate_series(
@@ -31,6 +37,7 @@ export async function getDashboard(req, res, next) {
         GROUP BY mois.mois
         ORDER BY mois.mois
       `),
+      // rendez-vous non annulés par spécialité
       query(`
         SELECT m.specialite, COUNT(r.id)::int AS nombre
         FROM medecins m
@@ -39,12 +46,14 @@ export async function getDashboard(req, res, next) {
         GROUP BY m.specialite
         ORDER BY nombre DESC, m.specialite
       `),
+      // les 10 dernières activités
       query(`
         SELECT action, description, created_at
         FROM activites
         ORDER BY created_at DESC, id DESC
         LIMIT 10
       `),
+      // nombre de rendez-vous par statut
       query(`
         SELECT statut, COUNT(*)::int AS nombre
         FROM rendez_vous

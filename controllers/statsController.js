@@ -1,7 +1,12 @@
+// Données du tableau de bord (routes /api/stats). Les requêtes SQL sont dans models/statsModel.js
+
 import * as Stats from '../models/statsModel.js';
 
+// types d'actions qu'on peut filtrer dans l'historique
 const ACTIONS = ['connexion', 'creation', 'modification', 'suppression'];
 
+// GET /api/stats/dashboard
+// lance toutes les requêtes en même temps (Promise.all) et renvoie tout d'un coup
 export async function dashboard(req, res, next) {
   try {
     const [kpi, consultations, specialites, statuts, medecins] = await Promise.all([
@@ -11,6 +16,7 @@ export async function dashboard(req, res, next) {
       Stats.parStatut(),
       Stats.parMedecin(),
     ]);
+    // no-store : le navigateur ne garde pas en cache, sinon l'actualisation auto afficherait de vieux chiffres
     res.set('Cache-Control', 'no-store');
     res.json({
       kpi,
@@ -25,8 +31,11 @@ export async function dashboard(req, res, next) {
   }
 }
 
+// GET /api/stats/activites?action=...&q=...
+// historique filtré par type d'action et/ou par texte recherché
 export async function activites(req, res, next) {
   try {
+    // si on envoie ?action=a&action=b, Express donne un tableau : on refuse
     if (req.query.action != null && typeof req.query.action !== 'string') {
       return res.status(400).json({ erreur: 'Action invalide.' });
     }
