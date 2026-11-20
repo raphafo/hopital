@@ -1,5 +1,5 @@
 // Récupère l'utilisateur connecté et monte la barre de navigation commune (nav.js).
-// exiger : redirige vers la page de connexion si personne n'est connecté.
+// exiger: redirige vers la page de connexion si personne n'est connecté.
 // actif : identifiant de la page courante dans le menu.
 function echapperHtml(texte) {
   const d = document.createElement('div');
