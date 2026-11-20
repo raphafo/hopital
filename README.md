@@ -37,8 +37,14 @@ tests/             tests automatisés
 public/            pages HTML, CSS, JS, images
 ```
 
+## lien github et appli
+https://hopital-tau.vercel.app/
+
+https://github.com/raphafo/hopital.git
+
+
 ## Captures d'écran
-À ajouter.
+
 
 ## Auteures
-À compléter.
+Ingrid , Cassandra
