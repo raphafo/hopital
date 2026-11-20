@@ -14,6 +14,9 @@ Application web de gestion hospitalière (Laboratoire 5) : patients, médecins, 
 - **Secrétaire** : gestion des patients et des rendez-vous; consultation des médecins; pas d'accès aux dossiers médicaux ni au tableau de bord. Un patient ayant un dossier médical ne peut être supprimé que par un administrateur.
 - **Médecin** : consultation des patients et médecins, gestion de ses rendez-vous assignés (statut uniquement) et de ses dossiers médicaux.
 
+anil.ramgoolam@hopital.mu Medecin123!
+admin@hopital.mu  Admin123!
+
 ## Lancer en local
 1. `npm install`
 2. Copier `.env.example` en `.env` et renseigner `DATABASE_URL` et `JWT_SECRET`
